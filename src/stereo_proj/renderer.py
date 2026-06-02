@@ -58,6 +58,7 @@ class StereogramRenderer:
         show_labels: bool = True,
         grid_step: int = 10,
         title: str | None = None,
+        custom_poles: list[ProjectedPole] | None = None,
     ) -> None:
         """Render the stereonet into an internal matplotlib Figure.
 
@@ -103,7 +104,7 @@ class StereogramRenderer:
         # Cross-hair at centre
         ax.plot(0, 0, "+", color="black", markersize=6, markeredgewidth=0.8, zorder=3)
 
-        # ── Poles ──────────────────────────────────────────────────────
+        # ── Standard poles ─────────────────────────────────────────────
         auto_labels = show_labels and len(poles) <= _LABEL_LIMIT
 
         for pole in poles:
@@ -127,11 +128,39 @@ class StereogramRenderer:
                     zorder=5,
                 )
 
+        # ── Custom poles (user-defined, shown in red) ──────────────────
+        if custom_poles:
+            for pole in custom_poles:
+                if pole.marker == "filled":
+                    ax.plot(pole.x, pole.y, "*",
+                            color="#d62728", markersize=10,
+                            markeredgewidth=0.6, zorder=6)
+                else:
+                    ax.plot(pole.x, pole.y, "*",
+                            color="#d62728", markersize=10,
+                            fillstyle="none", markeredgewidth=1.2, zorder=6)
+                ax.annotate(
+                    _fmt_hkl(pole.hkl),
+                    (pole.x, pole.y),
+                    xytext=(4, 4),
+                    textcoords="offset points",
+                    fontsize=8,
+                    fontweight="bold",
+                    color="#d62728",
+                    ha="left",
+                    va="bottom",
+                    zorder=7,
+                )
+
         # ── Legend ─────────────────────────────────────────────────────
         legend_handles = [
             mpatches.Patch(facecolor="black", label="Верхняя полусфера"),
             mpatches.Patch(facecolor="white", edgecolor="black", label="Нижняя полусфера"),
         ]
+        if custom_poles:
+            legend_handles.append(
+                mpatches.Patch(facecolor="#d62728", label="Заданные вручную")
+            )
         ax.legend(handles=legend_handles, loc="lower right",
                   fontsize=8, framealpha=0.8, handlelength=1)
 

@@ -10,6 +10,7 @@ class ProjectedPole:
     y: float
     marker: str          # 'filled' = front hemisphere, 'open' = back hemisphere
     hkl: tuple[int, int, int]
+    custom: bool = False  # True = manually added by user
 
 
 class StereographicProjection:
@@ -129,5 +130,19 @@ class StereographicProjection:
         for hkl in hkl_list:
             pole = self.project(hkl, hemisphere=hemisphere)
             if pole is not None:
+                result.append(pole)
+        return result
+
+    def project_custom(
+        self,
+        hkl_list: list[tuple[int, int, int]],
+        hemisphere: str = "both",
+    ) -> list[ProjectedPole]:
+        """Project user-supplied poles; marks each with custom=True."""
+        result: list[ProjectedPole] = []
+        for hkl in hkl_list:
+            pole = self.project(hkl, hemisphere=hemisphere)
+            if pole is not None:
+                pole.custom = True
                 result.append(pole)
         return result

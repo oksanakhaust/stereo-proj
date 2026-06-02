@@ -81,6 +81,22 @@ with st.sidebar:
     show_labels = st.checkbox("Подписи (hkl)", value=True)
 
     st.divider()
+
+    # --- Произвольные точки ---
+    st.subheader("Дополнительные полюсы")
+    st.caption(
+        "Введите (hkl) вручную — по одному на строку, через пробел. "
+        "Например: `1 2 3`"
+    )
+    custom_text = st.text_area(
+        "Список (hkl)",
+        value="",
+        height=120,
+        placeholder="1 2 3\n0 1 1\n2 1 0",
+        key="custom_hkl",
+    )
+
+    st.divider()
     build_btn = st.button(
         "▶ Построить проекцию",
         use_container_width=True,
@@ -90,6 +106,26 @@ with st.sidebar:
 # ──────────────────────────────────────────────────────────────────────────────
 # Build logic
 # ──────────────────────────────────────────────────────────────────────────────
+def _parse_custom_hkl(text: str) -> tuple[list[tuple[int, int, int]], str]:
+    """Parse multiline text into list of (h,k,l) tuples. Returns (poles, error_msg)."""
+    poles = []
+    for lineno, line in enumerate(text.strip().splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        parts = line.replace(",", " ").split()
+        if len(parts) != 3:
+            return [], f"Строка {lineno}: ожидается 3 индекса, получено {len(parts)} ({line!r})"
+        try:
+            h, k, l = int(parts[0]), int(parts[1]), int(parts[2])
+        except ValueError:
+            return [], f"Строка {lineno}: индексы должны быть целыми числами ({line!r})"
+        if h == 0 and k == 0 and l == 0:
+            return [], f"Строка {lineno}: (0 0 0) не является допустимым полюсом"
+        poles.append((h, k, l))
+    return poles, ""
+
+
 if build_btn:
     center = (H, K, L)
 
@@ -97,26 +133,36 @@ if build_btn:
         st.session_state["error"] = "Центр проекции не может быть (0, 0, 0)."
         st.session_state.pop("renderer", None)
     else:
-        with st.spinner("Вычисляю проекцию…"):
-            try:
-                system = CubicSystem()
-                hkl_list = system.generate_hkl(max_sum_sq=max_sum_sq)
-                proj = StereographicProjection(center, radius=float(radius))
-                poles = proj.project_all(hkl_list, hemisphere=_HEMI_MAP[hemisphere_label])
-                renderer = StereogramRenderer(proj)
-                renderer.draw(
-                    poles,
-                    show_grid=show_grid,
-                    show_labels=show_labels,
-                    grid_step=grid_step,
-                )
-                st.session_state["renderer"] = renderer
-                st.session_state["n_poles"] = len(poles)
-                st.session_state["center"] = center
-                st.session_state.pop("error", None)
-            except ValueError as exc:
-                st.session_state["error"] = str(exc)
-                st.session_state.pop("renderer", None)
+        custom_hkl_list, parse_error = _parse_custom_hkl(custom_text)
+        if parse_error:
+            st.session_state["error"] = f"Ошибка в ручном вводе: {parse_error}"
+            st.session_state.pop("renderer", None)
+        else:
+            with st.spinner("Вычисляю проекцию…"):
+                try:
+                    system = CubicSystem()
+                    hkl_list = system.generate_hkl(max_sum_sq=max_sum_sq)
+                    proj = StereographicProjection(center, radius=float(radius))
+                    poles = proj.project_all(hkl_list, hemisphere=_HEMI_MAP[hemisphere_label])
+                    custom_poles = proj.project_custom(
+                        custom_hkl_list, hemisphere=_HEMI_MAP[hemisphere_label]
+                    ) if custom_hkl_list else []
+                    renderer = StereogramRenderer(proj)
+                    renderer.draw(
+                        poles,
+                        show_grid=show_grid,
+                        show_labels=show_labels,
+                        grid_step=grid_step,
+                        custom_poles=custom_poles or None,
+                    )
+                    st.session_state["renderer"] = renderer
+                    st.session_state["n_poles"] = len(poles)
+                    st.session_state["n_custom"] = len(custom_poles)
+                    st.session_state["center"] = center
+                    st.session_state.pop("error", None)
+                except ValueError as exc:
+                    st.session_state["error"] = str(exc)
+                    st.session_state.pop("renderer", None)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Display
@@ -129,7 +175,11 @@ elif "renderer" in st.session_state:
     n_poles: int = st.session_state["n_poles"]
     center: tuple = st.session_state["center"]
 
-    st.info(f"Отображено полюсов: **{n_poles}**")
+    n_custom: int = st.session_state.get("n_custom", 0)
+    info_msg = f"Отображено полюсов: **{n_poles}**"
+    if n_custom:
+        info_msg += f"  +  **{n_custom}** заданных вручную (красные звёздочки)"
+    st.info(info_msg)
 
     # ── Figure ──────────────────────────────────────────────────────
     col_fig, col_dl = st.columns([3, 1])
