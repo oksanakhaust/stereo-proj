@@ -49,7 +49,7 @@ with st.sidebar:
     only_custom = st.checkbox(
         "Только заданные вручную",
         value=False,
-        help="Скрыть все автоматически сгенерированные полюсы, показать только введённые вручную.",
+        help="Скрыть все автоматически сгенерированные полюсы.",
     )
     if not only_custom:
         max_sum_sq = st.slider(
@@ -61,7 +61,7 @@ with st.sidebar:
             ),
         )
     else:
-        max_sum_sq = 9  # unused but keep variable defined
+        max_sum_sq = 9
 
     st.divider()
 
@@ -73,7 +73,7 @@ with st.sidebar:
         "Полусфера",
         options=["Обе", "Верхняя", "Нижняя"],
         index=0,
-        help="Верхняя — закрашенные кружки; нижняя — крестики.",
+        help="Верхняя — кружки; нижняя — крестики.",
     )
     _HEMI_MAP = {"Обе": "both", "Верхняя": "upper", "Нижняя": "lower"}
 
@@ -81,7 +81,7 @@ with st.sidebar:
     grid_step = 10
     if show_grid:
         grid_step = st.select_slider(
-            "Шаг сетки (°)", options=[5, 10, 15, 30], value=10
+            "Шаг сетки (°)", options=[2, 5, 10, 15, 30], value=10
         )
 
     show_labels = st.checkbox("Подписи (hkl)", value=True)
@@ -90,16 +90,34 @@ with st.sidebar:
 
     # --- Произвольные точки ---
     st.subheader("Дополнительные полюсы")
-    st.caption(
-        "Введите (hkl) вручную — по одному на строку, через пробел. "
-        "Например: `1 2 3`"
-    )
+    st.caption("По одному (hkl) на строку, через пробел. Например: `1 2 3`")
     custom_text = st.text_area(
         "Список (hkl)",
         value="",
         height=120,
         placeholder="1 2 3\n0 1 1\n2 1 0",
         key="custom_hkl",
+    )
+
+    st.divider()
+
+    # --- Логотип и подпись ---
+    st.subheader("Логотип и подпись")
+    logo_file = st.file_uploader(
+        "Логотип (PNG/JPG)",
+        type=["png", "jpg", "jpeg"],
+        help="Загрузите изображение — оно появится в левом нижнем углу проекции.",
+    )
+    if logo_file is not None:
+        st.session_state["logo_bytes"] = logo_file.read()
+    if st.button("Убрать логотип", use_container_width=True):
+        st.session_state.pop("logo_bytes", None)
+
+    signature_text = st.text_area(
+        "Подпись (под логотипом)",
+        value="Кафедра физического материаловедения\nХаустович Оксана Алексеевна БМТМ-24-4-1",
+        height=80,
+        help="Текст рядом с логотипом. Каждая строка — отдельная строчка на чертеже.",
     )
 
     st.divider()
@@ -155,7 +173,13 @@ if build_btn:
                         hkl_list = system.generate_hkl(max_sum_sq=max_sum_sq)
                         poles = proj.project_all(hkl_list, hemisphere=hemi)
 
-                    custom_poles = proj.project_custom(custom_hkl_list, hemisphere=hemi) if custom_hkl_list else []
+                    custom_poles = (
+                        proj.project_custom(custom_hkl_list, hemisphere=hemi)
+                        if custom_hkl_list else []
+                    )
+
+                    logo_bytes = st.session_state.get("logo_bytes")
+                    sig = signature_text.strip() or None
 
                     renderer = StereogramRenderer(proj)
                     renderer.draw(
@@ -164,6 +188,8 @@ if build_btn:
                         show_labels=show_labels,
                         grid_step=grid_step,
                         custom_poles=custom_poles or None,
+                        logo_bytes=logo_bytes,
+                        signature=sig,
                     )
                     st.session_state["renderer"] = renderer
                     st.session_state["n_poles"] = len(poles)
@@ -178,7 +204,7 @@ if build_btn:
 # Display
 # ──────────────────────────────────────────────────────────────────────────────
 if st.session_state.get("error"):
-    st.error(f"{st.session_state['error']}")
+    st.error(st.session_state["error"])
 
 elif "renderer" in st.session_state:
     renderer: StereogramRenderer = st.session_state["renderer"]
