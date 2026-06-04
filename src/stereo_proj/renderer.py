@@ -12,10 +12,18 @@ from .projection import ProjectedPole, StereographicProjection
 
 _LABEL_LIMIT = 80
 
+# Watermark: logo file (project root) + hardcoded signature
+_HERE = os.path.dirname(os.path.abspath(__file__))
+_LOGO_PATH = os.path.normpath(os.path.join(_HERE, "..", "..", "misis_logo.png"))
+_SIGNATURE = (
+    "Кафедра физического материаловедения\n"
+    "Хаустович Оксана Алексеевна  БМТМ-24-4-1"
+)
+
 
 def _fmt_index(n: int) -> str:
     if n < 0:
-        return f"{-n}̅"   # combining overline: 1̄, 2̄, …
+        return f"{-n}̅"
     return str(n)
 
 
@@ -46,14 +54,11 @@ class StereogramRenderer:
         grid_step: int = 10,
         title: str | None = None,
         custom_poles: list[ProjectedPole] | None = None,
-        logo_bytes: bytes | None = None,
-        signature: str | None = None,
     ) -> None:
         if self.fig is not None:
             plt.close(self.fig)
 
         R = self.projection.radius
-        has_footer = bool(logo_bytes or signature)
 
         fig, ax = plt.subplots(figsize=(8, 8), dpi=100)
         fig.patch.set_facecolor("white")
@@ -83,7 +88,7 @@ class StereogramRenderer:
         # Crosshair at centre
         ax.plot(0, 0, "+", color="black", markersize=6, markeredgewidth=0.8, zorder=3)
 
-        # ── Centre label (always visible) ──────────────────────────────
+        # Centre label (always visible, bold)
         ax.annotate(
             _fmt_hkl(self.projection.center_hkl),
             (0, 0),
@@ -167,38 +172,36 @@ class StereogramRenderer:
         # ── Axis limits ────────────────────────────────────────────────
         margin = R * 1.18
         ax.set_xlim(-margin, margin)
-        ax.set_ylim(-margin * (1.52 if has_footer else 1.0), margin)
+        ax.set_ylim(-margin * 1.52, margin)
 
-        # ── Logo + signature in bottom strip ───────────────────────────
-        if has_footer:
-            sig_x = -margin * 0.98
+        # ── Watermark: logo + signature (bottom-left, always) ──────────
+        sig_x = -margin * 0.98
 
-            if logo_bytes:
-                try:
-                    logo_img = plt.imread(io.BytesIO(logo_bytes))
-                    h_px, w_px = logo_img.shape[:2]
-                    logo_h = margin * 0.34
-                    logo_w = logo_h * (w_px / h_px)
-                    logo_ax = ax.inset_axes(
-                        [-margin * 0.98, -margin * 1.46, logo_w, logo_h],
-                        transform=ax.transData,
-                    )
-                    logo_ax.imshow(logo_img)
-                    logo_ax.axis("off")
-                    sig_x = -margin * 0.98 + logo_w + margin * 0.04
-                except Exception:
-                    pass  # skip broken logo, still render signature
+        if os.path.isfile(_LOGO_PATH):
+            try:
+                logo_img = plt.imread(_LOGO_PATH)
+                h_px, w_px = logo_img.shape[:2]
+                logo_h = margin * 0.34
+                logo_w = logo_h * (w_px / h_px)
+                logo_ax = ax.inset_axes(
+                    [-margin * 0.98, -margin * 1.46, logo_w, logo_h],
+                    transform=ax.transData,
+                )
+                logo_ax.imshow(logo_img)
+                logo_ax.axis("off")
+                sig_x = -margin * 0.98 + logo_w + margin * 0.05
+            except Exception:
+                pass
 
-            if signature:
-                lines = signature.split("\n")
-                line_h = margin * 0.085
-                top_y = -margin * 1.24
-                for i, line in enumerate(lines):
-                    ax.text(
-                        sig_x, top_y - i * line_h,
-                        line,
-                        fontsize=7, va="top", ha="left", color="#333333",
-                    )
+        lines = _SIGNATURE.split("\n")
+        line_h = margin * 0.085
+        top_y = -margin * 1.24
+        for i, line in enumerate(lines):
+            ax.text(
+                sig_x, top_y - i * line_h,
+                line,
+                fontsize=7, va="top", ha="left", color="#555555",
+            )
 
         self.fig = fig
         self.ax = ax

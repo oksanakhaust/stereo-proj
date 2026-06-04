@@ -100,27 +100,6 @@ with st.sidebar:
     )
 
     st.divider()
-
-    # --- Логотип и подпись ---
-    st.subheader("Логотип и подпись")
-    logo_file = st.file_uploader(
-        "Логотип (PNG/JPG)",
-        type=["png", "jpg", "jpeg"],
-        help="Загрузите изображение — оно появится в левом нижнем углу проекции.",
-    )
-    if logo_file is not None:
-        st.session_state["logo_bytes"] = logo_file.read()
-    if st.button("Убрать логотип", use_container_width=True):
-        st.session_state.pop("logo_bytes", None)
-
-    signature_text = st.text_area(
-        "Подпись (под логотипом)",
-        value="Кафедра физического материаловедения\nХаустович Оксана Алексеевна БМТМ-24-4-1",
-        height=80,
-        help="Текст рядом с логотипом. Каждая строка — отдельная строчка на чертеже.",
-    )
-
-    st.divider()
     build_btn = st.button(
         "Построить проекцию",
         use_container_width=True,
@@ -178,9 +157,6 @@ if build_btn:
                         if custom_hkl_list else []
                     )
 
-                    logo_bytes = st.session_state.get("logo_bytes")
-                    sig = signature_text.strip() or None
-
                     renderer = StereogramRenderer(proj)
                     renderer.draw(
                         poles,
@@ -188,8 +164,6 @@ if build_btn:
                         show_labels=show_labels,
                         grid_step=grid_step,
                         custom_poles=custom_poles or None,
-                        logo_bytes=logo_bytes,
-                        signature=sig,
                     )
                     st.session_state["renderer"] = renderer
                     st.session_state["n_poles"] = len(poles)
