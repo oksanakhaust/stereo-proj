@@ -112,9 +112,8 @@ class StereogramRenderer:
                 ax.plot(pole.x, pole.y, "o",
                         color="black", markersize=5, markeredgewidth=0.8, zorder=4)
             else:
-                ax.plot(pole.x, pole.y, "o",
-                        color="black", markersize=5,
-                        fillstyle="none", markeredgewidth=1.2, zorder=4)
+                ax.plot(pole.x, pole.y, "x",
+                        color="black", markersize=6, markeredgewidth=1.2, zorder=4)
 
             if auto_labels:
                 ax.annotate(
@@ -132,13 +131,13 @@ class StereogramRenderer:
         if custom_poles:
             for pole in custom_poles:
                 if pole.marker == "filled":
-                    ax.plot(pole.x, pole.y, "*",
-                            color="#d62728", markersize=10,
-                            markeredgewidth=0.6, zorder=6)
+                    ax.plot(pole.x, pole.y, "o",
+                            color="#d62728", markersize=7,
+                            markeredgewidth=0.8, zorder=6)
                 else:
-                    ax.plot(pole.x, pole.y, "*",
-                            color="#d62728", markersize=10,
-                            fillstyle="none", markeredgewidth=1.2, zorder=6)
+                    ax.plot(pole.x, pole.y, "x",
+                            color="#d62728", markersize=8,
+                            markeredgewidth=1.5, zorder=6)
                 ax.annotate(
                     _fmt_hkl(pole.hkl),
                     (pole.x, pole.y),
@@ -153,13 +152,17 @@ class StereogramRenderer:
                 )
 
         # ── Legend ─────────────────────────────────────────────────────
+        from matplotlib.lines import Line2D
         legend_handles = [
-            mpatches.Patch(facecolor="black", label="Верхняя полусфера"),
-            mpatches.Patch(facecolor="white", edgecolor="black", label="Нижняя полусфера"),
+            Line2D([0], [0], marker="o", color="w", markerfacecolor="black",
+                   markersize=7, label="Верхняя полусфера"),
+            Line2D([0], [0], marker="x", color="black", markersize=7,
+                   markeredgewidth=1.2, label="Нижняя полусфера"),
         ]
         if custom_poles:
             legend_handles.append(
-                mpatches.Patch(facecolor="#d62728", label="Заданные вручную")
+                Line2D([0], [0], marker="o", color="w", markerfacecolor="#d62728",
+                       markersize=7, label="Заданные вручную")
             )
         ax.legend(handles=legend_handles, loc="lower right",
                   fontsize=8, framealpha=0.8, handlelength=1)

@@ -6,7 +6,6 @@ import sys
 import matplotlib
 matplotlib.use("Agg")
 
-# Make the src/ layout importable when running directly from the repo root
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import streamlit as st
@@ -20,12 +19,11 @@ from stereo_proj.renderer import StereogramRenderer
 # ──────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Стереографические проекции",
-    page_icon="💎",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-st.title("💎 Стереографические проекции")
+st.title("Стереографические проекции")
 st.caption(
     "Генератор полюсных фигур кубической кристаллографической системы. "
     "Выберите параметры слева и нажмите **«Построить проекцию»**."
@@ -35,7 +33,7 @@ st.caption(
 # Sidebar — параметры
 # ──────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.header("⚙️ Параметры")
+    st.header("Параметры")
 
     # --- Центр проекции ---
     st.subheader("Центр проекции [HKL]")
@@ -48,14 +46,22 @@ with st.sidebar:
 
     # --- Плоскости ---
     st.subheader("Плоскости")
-    max_sum_sq = st.slider(
-        "Макс. h²+k²+l²",
-        min_value=1, max_value=25, value=9,
-        help=(
-            "Ограничивает набор плоскостей: все (hkl) с h²+k²+l² ≤ N. "
-            "N=1 → {100}, N=2 → +{110}, N=3 → +{111}, N=5 → +{210}, …"
-        ),
+    only_custom = st.checkbox(
+        "Только заданные вручную",
+        value=False,
+        help="Скрыть все автоматически сгенерированные полюсы, показать только введённые вручную.",
     )
+    if not only_custom:
+        max_sum_sq = st.slider(
+            "Макс. h²+k²+l²",
+            min_value=1, max_value=25, value=9,
+            help=(
+                "Ограничивает набор плоскостей: все (hkl) с h²+k²+l² ≤ N. "
+                "N=1 → {100}, N=2 → +{110}, N=3 → +{111}, N=5 → +{210}, …"
+            ),
+        )
+    else:
+        max_sum_sq = 9  # unused but keep variable defined
 
     st.divider()
 
@@ -67,7 +73,7 @@ with st.sidebar:
         "Полусфера",
         options=["Обе", "Верхняя", "Нижняя"],
         index=0,
-        help="Верхняя — закрашенные кружки; нижняя — контурные.",
+        help="Верхняя — закрашенные кружки; нижняя — крестики.",
     )
     _HEMI_MAP = {"Обе": "both", "Верхняя": "upper", "Нижняя": "lower"}
 
@@ -98,7 +104,7 @@ with st.sidebar:
 
     st.divider()
     build_btn = st.button(
-        "▶ Построить проекцию",
+        "Построить проекцию",
         use_container_width=True,
         type="primary",
     )
@@ -107,7 +113,6 @@ with st.sidebar:
 # Build logic
 # ──────────────────────────────────────────────────────────────────────────────
 def _parse_custom_hkl(text: str) -> tuple[list[tuple[int, int, int]], str]:
-    """Parse multiline text into list of (h,k,l) tuples. Returns (poles, error_msg)."""
     poles = []
     for lineno, line in enumerate(text.strip().splitlines(), 1):
         line = line.strip()
@@ -140,13 +145,18 @@ if build_btn:
         else:
             with st.spinner("Вычисляю проекцию…"):
                 try:
-                    system = CubicSystem()
-                    hkl_list = system.generate_hkl(max_sum_sq=max_sum_sq)
                     proj = StereographicProjection(center, radius=float(radius))
-                    poles = proj.project_all(hkl_list, hemisphere=_HEMI_MAP[hemisphere_label])
-                    custom_poles = proj.project_custom(
-                        custom_hkl_list, hemisphere=_HEMI_MAP[hemisphere_label]
-                    ) if custom_hkl_list else []
+                    hemi = _HEMI_MAP[hemisphere_label]
+
+                    if only_custom:
+                        poles = []
+                    else:
+                        system = CubicSystem()
+                        hkl_list = system.generate_hkl(max_sum_sq=max_sum_sq)
+                        poles = proj.project_all(hkl_list, hemisphere=hemi)
+
+                    custom_poles = proj.project_custom(custom_hkl_list, hemisphere=hemi) if custom_hkl_list else []
+
                     renderer = StereogramRenderer(proj)
                     renderer.draw(
                         poles,
@@ -168,7 +178,7 @@ if build_btn:
 # Display
 # ──────────────────────────────────────────────────────────────────────────────
 if st.session_state.get("error"):
-    st.error(f"❌ {st.session_state['error']}")
+    st.error(f"{st.session_state['error']}")
 
 elif "renderer" in st.session_state:
     renderer: StereogramRenderer = st.session_state["renderer"]
@@ -178,15 +188,13 @@ elif "renderer" in st.session_state:
     n_custom: int = st.session_state.get("n_custom", 0)
     info_msg = f"Отображено полюсов: **{n_poles}**"
     if n_custom:
-        info_msg += f"  +  **{n_custom}** заданных вручную (красные звёздочки)"
+        info_msg += f"  +  **{n_custom}** заданных вручную (красные кружки)"
     st.info(info_msg)
 
-    # ── Figure ──────────────────────────────────────────────────────
     col_fig, col_dl = st.columns([3, 1])
     with col_fig:
         st.pyplot(renderer.get_figure(), use_container_width=True)
 
-    # ── Download buttons ────────────────────────────────────────────
     with col_dl:
         st.subheader("Экспорт")
         center_str = "".join(
@@ -194,21 +202,21 @@ elif "renderer" in st.session_state:
         )
 
         st.download_button(
-            "⬇ JPEG",
+            "JPEG",
             data=renderer.get_bytes("jpeg"),
             file_name=f"stereo_{center_str}.jpg",
             mime="image/jpeg",
             use_container_width=True,
         )
         st.download_button(
-            "⬇ PNG",
+            "PNG",
             data=renderer.get_bytes("png"),
             file_name=f"stereo_{center_str}.png",
             mime="image/png",
             use_container_width=True,
         )
         st.download_button(
-            "⬇ PDF",
+            "PDF",
             data=renderer.get_bytes("pdf"),
             file_name=f"stereo_{center_str}.pdf",
             mime="application/pdf",
@@ -221,7 +229,7 @@ elif "renderer" in st.session_state:
         )
 
 else:
-    st.info("👈 Настройте параметры в боковой панели и нажмите **«Построить проекцию»**.")
+    st.info("Настройте параметры в боковой панели и нажмите «Построить проекцию».")
     st.markdown(
         """
         ### Быстрый старт
