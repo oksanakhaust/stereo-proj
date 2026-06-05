@@ -164,6 +164,7 @@ if build_btn:
                         show_labels=show_labels,
                         grid_step=grid_step,
                         custom_poles=custom_poles or None,
+                        crystal_system="кубической",
                     )
                     st.session_state["renderer"] = renderer
                     st.session_state["n_poles"] = len(poles)

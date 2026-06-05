@@ -61,11 +61,14 @@ class StereogramRenderer:
         grid_step: int = 10,
         title: str | None = None,
         custom_poles: list[ProjectedPole] | None = None,
+        crystal_system: str = "кубической",
     ) -> None:
         if self.fig is not None:
             plt.close(self.fig)
 
         R = self.projection.radius
+
+        plt.rcParams["font.family"] = "Arial"
 
         fig, ax = plt.subplots(figsize=(8, 8), dpi=100)
         fig.patch.set_facecolor("white")
@@ -173,8 +176,12 @@ class StereogramRenderer:
 
         # ── Title ──────────────────────────────────────────────────────
         if title is None:
-            title = f"Стереографическая проекция {_fmt_hkl_bracket(self.projection.center_hkl)}"
-        ax.set_title(title, fontsize=13, pad=10)
+            title = (
+                f"Стереографическая проекция "
+                f"{_fmt_hkl_bracket(self.projection.center_hkl)} "
+                f"для {crystal_system} сингонии"
+            )
+        ax.set_title(title, fontsize=12, pad=10)
 
         # ── Axis limits ────────────────────────────────────────────────
         margin = R * 1.18
@@ -189,7 +196,7 @@ class StereogramRenderer:
             try:
                 logo_img = plt.imread(logo_path)
                 h_px, w_px = logo_img.shape[:2]
-                logo_h = margin * 0.34
+                logo_h = margin * 0.17
                 logo_w = logo_h * (w_px / h_px)
                 logo_ax = ax.inset_axes(
                     [-margin * 0.98, -margin * 1.46, logo_w, logo_h],
@@ -197,18 +204,19 @@ class StereogramRenderer:
                 )
                 logo_ax.imshow(logo_img)
                 logo_ax.axis("off")
-                sig_x = -margin * 0.98 + logo_w + margin * 0.05
+                sig_x = -margin * 0.98 + logo_w + margin * 0.04
             except Exception:
                 pass
 
         lines = _SIGNATURE.split("\n")
-        line_h = margin * 0.085
-        top_y = -margin * 1.24
+        line_h = margin * 0.075
+        top_y = -margin * 1.30
         for i, line in enumerate(lines):
             ax.text(
                 sig_x, top_y - i * line_h,
                 line,
                 fontsize=7, va="top", ha="left", color="#555555",
+                fontfamily="Arial",
             )
 
         self.fig = fig
