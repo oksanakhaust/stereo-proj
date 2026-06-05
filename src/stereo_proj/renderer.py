@@ -12,13 +12,20 @@ from .projection import ProjectedPole, StereographicProjection
 
 _LABEL_LIMIT = 80
 
-# Watermark: logo file (project root) + hardcoded signature
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_LOGO_PATH = os.path.normpath(os.path.join(_HERE, "..", "..", "misis_logo.png"))
 _SIGNATURE = (
     "Кафедра физического материаловедения\n"
     "Хаустович Оксана Алексеевна  БМТМ-24-4-1"
 )
+
+
+def _find_logo() -> str | None:
+    """Find misis_logo.png using glob (works with Cyrillic paths on Windows)."""
+    import glob
+    for pattern in ["misis_logo.png", "*/misis_logo.png"]:
+        matches = glob.glob(pattern)
+        if matches:
+            return matches[0]
+    return None
 
 
 def _fmt_index(n: int) -> str:
@@ -176,10 +183,11 @@ class StereogramRenderer:
 
         # ── Watermark: logo + signature (bottom-left, always) ──────────
         sig_x = -margin * 0.98
+        logo_path = _find_logo()
 
-        if os.path.isfile(_LOGO_PATH):
+        if logo_path:
             try:
-                logo_img = plt.imread(_LOGO_PATH)
+                logo_img = plt.imread(logo_path)
                 h_px, w_px = logo_img.shape[:2]
                 logo_h = margin * 0.34
                 logo_w = logo_h * (w_px / h_px)
