@@ -29,19 +29,22 @@ def _find_logo() -> str | None:
 
 
 def _fmt_index(n: int) -> str:
+    """Miller index as mathtext fragment: negative gets \\bar{}."""
     if n < 0:
-        return f"{-n}̅"
+        return r"\bar{" + str(-n) + "}"
     return str(n)
 
 
 def _fmt_hkl(hkl: tuple[int, int, int]) -> str:
     h, k, l = hkl
-    return f"({_fmt_index(h)}{_fmt_index(k)}{_fmt_index(l)})"
+    inner = _fmt_index(h) + _fmt_index(k) + _fmt_index(l)
+    return f"$({inner})$"
 
 
 def _fmt_hkl_bracket(hkl: tuple[int, int, int]) -> str:
     h, k, l = hkl
-    return f"[{_fmt_index(h)}{_fmt_index(k)}{_fmt_index(l)}]"
+    inner = _fmt_index(h) + _fmt_index(k) + _fmt_index(l)
+    return f"$[{inner}]$"
 
 
 class StereogramRenderer:
@@ -113,6 +116,7 @@ class StereogramRenderer:
 
         # ── Standard poles ─────────────────────────────────────────────
         auto_labels = show_labels and len(poles) <= _LABEL_LIMIT
+        label_texts = []
 
         for pole in poles:
             if pole.marker == "filled":
@@ -123,16 +127,9 @@ class StereogramRenderer:
                         color="black", markersize=4.5, markeredgewidth=0.9, zorder=4)
 
             if auto_labels:
-                ax.annotate(
-                    _fmt_hkl(pole.hkl),
-                    (pole.x, pole.y),
-                    xytext=(3, 3),
-                    textcoords="offset points",
-                    fontsize=7,
-                    ha="left",
-                    va="bottom",
-                    zorder=5,
-                )
+                t = ax.text(pole.x, pole.y, _fmt_hkl(pole.hkl),
+                            fontsize=7, ha="center", va="bottom", zorder=5)
+                label_texts.append(t)
 
         # ── Custom poles (red circles / red crosses) ───────────────────
         if custom_poles:
@@ -145,18 +142,23 @@ class StereogramRenderer:
                     ax.plot(pole.x, pole.y, "x",
                             color="#d62728", markersize=6,
                             markeredgewidth=1.2, zorder=6)
-                ax.annotate(
-                    _fmt_hkl(pole.hkl),
-                    (pole.x, pole.y),
-                    xytext=(4, 4),
-                    textcoords="offset points",
-                    fontsize=8,
-                    fontweight="bold",
-                    color="#d62728",
-                    ha="left",
-                    va="bottom",
-                    zorder=7,
+                t = ax.text(pole.x, pole.y, _fmt_hkl(pole.hkl),
+                            fontsize=8, fontweight="bold", color="#d62728",
+                            ha="center", va="bottom", zorder=7)
+                label_texts.append(t)
+
+        # ── Repel overlapping labels ───────────────────────────────────
+        if label_texts:
+            try:
+                from adjustText import adjust_text
+                adjust_text(
+                    label_texts,
+                    ax=ax,
+                    expand=(1.2, 1.4),
+                    arrowprops=dict(arrowstyle="-", color="#aaaaaa", lw=0.5),
                 )
+            except Exception:
+                pass
 
         # ── Legend ─────────────────────────────────────────────────────
         from matplotlib.lines import Line2D

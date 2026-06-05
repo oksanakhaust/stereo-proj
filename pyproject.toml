@@ -12,6 +12,7 @@ dependencies = [
     "numpy>=1.24",
     "matplotlib>=3.7",
     "streamlit>=1.28",
+    "adjustText>=1.0",
 ]
 
 [project.optional-dependencies]
