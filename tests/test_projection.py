@@ -108,5 +108,5 @@ def test_project_all_count():
     from stereo_proj.crystal.cubic import CubicSystem
     proj = StereographicProjection((0, 0, 1), radius=R)
     poles = proj.project_all(CubicSystem().generate_hkl(3), hemisphere="both")
-    # All 13 primitive poles with max_sum_sq=3 should be projected
-    assert len(poles) == 13
+    # 26 primitive poles (both signs) with max_sum_sq=3 should all project
+    assert len(poles) == 26

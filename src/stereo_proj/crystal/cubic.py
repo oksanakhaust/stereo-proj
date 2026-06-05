@@ -40,14 +40,7 @@ class CubicSystem(CrystalSystem):
                     if _gcd3(h, k, l) != 1:
                         continue  # non-primitive: same direction as a smaller (hkl)
 
-                    # Canonical form: flip so the first non-zero component is positive
-                    hc, kc, lc = h, k, l
-                    for x in (hc, kc, lc):
-                        if x != 0:
-                            if x < 0:
-                                hc, kc, lc = -hc, -kc, -lc
-                            break
-                    poles.add((hc, kc, lc))
+                    poles.add((h, k, l))
 
         result = sorted(poles, key=lambda p: (p[0] ** 2 + p[1] ** 2 + p[2] ** 2, p))
 

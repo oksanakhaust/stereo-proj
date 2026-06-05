@@ -24,21 +24,13 @@ def test_no_zero_pole():
     assert (0, 0, 0) not in poles
 
 
-def test_no_antiparallel_duplicates():
-    poles = CubicSystem().generate_hkl(max_sum_sq=9)
-    for h, k, l in poles:
-        assert (-h, -k, -l) not in poles or (h, k, l) == (-h, -k, -l), \
-            f"Antiparallel pair present: {(h,k,l)} and {(-h,-k,-l)}"
-
-
-def test_canonical_form():
-    """First non-zero index must be positive."""
-    poles = CubicSystem().generate_hkl(max_sum_sq=9)
-    for h, k, l in poles:
-        for x in (h, k, l):
-            if x != 0:
-                assert x > 0, f"Non-canonical pole {(h,k,l)}: first non-zero is negative"
-                break
+def test_antiparallel_pairs_present():
+    """Both (hkl) and (-h,-k,-l) must appear — gives symmetric projection."""
+    poles = set(CubicSystem().generate_hkl(max_sum_sq=9))
+    for p in [(1, 0, 0), (0, 1, 0), (1, 1, 0), (1, 1, 1)]:
+        neg = (-p[0], -p[1], -p[2])
+        assert p in poles and neg in poles, \
+            f"Expected both {p} and {neg} in pole set"
 
 
 def test_no_non_primitive():
@@ -54,16 +46,20 @@ def test_no_non_primitive():
 
 
 def test_count_n1():
-    """max_sum_sq=1 gives exactly 3 poles: {100} family."""
+    """max_sum_sq=1 gives 6 poles: ±{100} family (both signs)."""
     poles = CubicSystem().generate_hkl(max_sum_sq=1)
-    assert len(poles) == 3
-    assert set(poles) == {(1, 0, 0), (0, 1, 0), (0, 0, 1)}
+    assert len(poles) == 6
+    assert set(poles) == {
+        (1, 0, 0), (-1, 0, 0),
+        (0, 1, 0), (0, -1, 0),
+        (0, 0, 1), (0, 0, -1),
+    }
 
 
 def test_count_n3():
-    """max_sum_sq=3: {100}+{110}+{111} = 3+6+4 = 13."""
+    """max_sum_sq=3: ±{100}+±{110}+±{111} = 6+12+8 = 26."""
     poles = CubicSystem().generate_hkl(max_sum_sq=3)
-    assert len(poles) == 13
+    assert len(poles) == 26
 
 
 def test_max_sum_sq_too_large():
