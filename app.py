@@ -23,6 +23,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+st.markdown(
+    "<style>#MainMenu{visibility:hidden;}header{visibility:hidden;}"
+    ".stDeployButton{display:none;}</style>",
+    unsafe_allow_html=True,
+)
+
 st.title("Стереографические проекции")
 st.caption(
     "Генератор полюсных фигур кубической кристаллографической системы. "
