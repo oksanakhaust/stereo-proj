@@ -102,12 +102,12 @@ class StereogramRenderer:
         ax.annotate(
             _fmt_hkl(self.projection.center_hkl),
             (0, 0),
-            xytext=(4, 4),
+            xytext=(0, -8),
             textcoords="offset points",
             fontsize=8,
             fontweight="bold",
-            ha="left",
-            va="bottom",
+            ha="center",
+            va="top",
             zorder=10,
         )
 
