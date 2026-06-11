@@ -145,25 +145,31 @@ class StereogramRenderer:
         for group in groups:
             has_filled = any(p.marker == "filled" for p in group)
             has_open   = any(p.marker == "open"   for p in group)
-            # Position from first pole; label from upper-hemisphere pole if present
+            # Position and label from upper-hemisphere pole when present
             rep = next((p for p in group if p.marker == "filled"), group[0])
             x, y = rep.x, rep.y
 
+            # Marker size scales with importance: lower h²+k²+l² → bigger dot
+            h, k, l = rep.hkl
+            sum_sq = h * h + k * k + l * l
+            ms_g = ms_auto * max(0.4, 1.0 / (max(sum_sq, 1) ** 0.28))
+
             if has_filled and has_open:
-                # Both hemispheres at same point: open circle + dot inside (⊙)
-                ax.plot(x, y, "o", color="black", markersize=ms_auto,
+                # Both hemispheres: open circle + dot inside (⊙)
+                ax.plot(x, y, "o", color="black", markersize=ms_g,
                         markerfacecolor="none", markeredgewidth=0.9 * _s, zorder=4)
                 ax.plot(x, y, "o", color="black",
-                        markersize=max(1.0, ms_auto * 0.35),
+                        markersize=max(1.0, ms_g * 0.35),
                         markeredgewidth=0, zorder=5)
             elif has_filled:
-                ax.plot(x, y, "o", color="black", markersize=ms_auto,
+                ax.plot(x, y, "o", color="black", markersize=ms_g,
                         markeredgewidth=0.6 * _s, zorder=4)
             else:  # open only
-                ax.plot(x, y, "o", color="black", markersize=ms_auto,
+                ax.plot(x, y, "o", color="black", markersize=ms_g,
                         markerfacecolor="none", markeredgewidth=0.8 * _s, zorder=4)
 
             if auto_labels:
+                # One label per group (upper pole only — avoids doubled labels)
                 t = ax.text(x, y, _fmt_hkl(rep.hkl),
                             fontsize=fs_auto, ha="center", va="bottom", zorder=6)
                 label_texts.append(t)
