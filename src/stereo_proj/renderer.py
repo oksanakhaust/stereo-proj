@@ -198,7 +198,7 @@ class StereogramRenderer:
             try:
                 logo_img = plt.imread(logo_path)
                 h_px, w_px = logo_img.shape[:2]
-                logo_h = margin * 0.17
+                logo_h = margin * 0.11
                 logo_w = logo_h * (w_px / h_px)
                 logo_ax = ax.inset_axes(
                     [-margin * 0.98, -margin * 1.46, logo_w, logo_h],
