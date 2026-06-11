@@ -73,7 +73,7 @@ with st.sidebar:
 
     # --- Вид ---
     st.subheader("Вид")
-    radius = st.slider("Радиус сетки", min_value=50, max_value=300, value=100, step=10)
+    radius = st.slider("Радиус сетки", min_value=50, max_value=600, value=100, step=10)
 
     hemisphere_label = st.selectbox(
         "Полусфера",

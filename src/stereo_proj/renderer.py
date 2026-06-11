@@ -72,7 +72,8 @@ class StereogramRenderer:
 
         plt.rcParams["font.family"] = "Arial"
 
-        fig, ax = plt.subplots(figsize=(8, 8), dpi=100)
+        fig_size = float(np.clip(8.0 * np.sqrt(R / 100.0), 8.0, 16.0))
+        fig, ax = plt.subplots(figsize=(fig_size, fig_size), dpi=100)
         fig.patch.set_facecolor("white")
         ax.set_facecolor("white")
         ax.set_aspect("equal")
