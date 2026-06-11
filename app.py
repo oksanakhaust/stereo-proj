@@ -77,11 +77,11 @@ with st.sidebar:
 
     hemisphere_label = st.selectbox(
         "Полусфера",
-        options=["Обе", "Верхняя", "Нижняя"],
+        options=["Верхняя", "Нижняя", "Обе"],
         index=0,
-        help="Верхняя — кружки; нижняя — крестики.",
+        help="Верхняя — закрашенные кружки; нижняя — открытые кружки; обе — открытый кружок с точкой внутри.",
     )
-    _HEMI_MAP = {"Обе": "both", "Верхняя": "upper", "Нижняя": "lower"}
+    _HEMI_MAP = {"Верхняя": "upper", "Нижняя": "lower", "Обе": "both"}
 
     show_grid = st.checkbox("Сетка Вульфа", value=True)
     grid_step = 10

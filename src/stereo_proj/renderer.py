@@ -124,23 +124,48 @@ class StereogramRenderer:
         fs_auto   = max(5, round(7 * _s))
         fs_custom = max(6, round(8 * _s))
 
+        # ── Group coincident poles (tolerance = 0.8 % of R) ───────────
+        tol = R * 0.008
+        groups: list[list] = []
+        for pole in poles:
+            placed = False
+            for g in groups:
+                rx, ry = g[0].x, g[0].y
+                if (pole.x - rx) ** 2 + (pole.y - ry) ** 2 < tol ** 2:
+                    g.append(pole)
+                    placed = True
+                    break
+            if not placed:
+                groups.append([pole])
+
         # ── Standard poles ─────────────────────────────────────────────
         auto_labels = show_labels
         label_texts = []
 
-        for pole in poles:
-            if pole.marker == "filled":
-                ax.plot(pole.x, pole.y, "o",
-                        color="black", markersize=ms_auto,
+        for group in groups:
+            has_filled = any(p.marker == "filled" for p in group)
+            has_open   = any(p.marker == "open"   for p in group)
+            # Position from first pole; label from upper-hemisphere pole if present
+            rep = next((p for p in group if p.marker == "filled"), group[0])
+            x, y = rep.x, rep.y
+
+            if has_filled and has_open:
+                # Both hemispheres at same point: open circle + dot inside (⊙)
+                ax.plot(x, y, "o", color="black", markersize=ms_auto,
+                        markerfacecolor="none", markeredgewidth=0.9 * _s, zorder=4)
+                ax.plot(x, y, "o", color="black",
+                        markersize=max(1.0, ms_auto * 0.35),
+                        markeredgewidth=0, zorder=5)
+            elif has_filled:
+                ax.plot(x, y, "o", color="black", markersize=ms_auto,
                         markeredgewidth=0.6 * _s, zorder=4)
-            else:
-                ax.plot(pole.x, pole.y, "x",
-                        color="black", markersize=ms_cross,
-                        markeredgewidth=0.9 * _s, zorder=4)
+            else:  # open only
+                ax.plot(x, y, "o", color="black", markersize=ms_auto,
+                        markerfacecolor="none", markeredgewidth=0.8 * _s, zorder=4)
 
             if auto_labels:
-                t = ax.text(pole.x, pole.y, _fmt_hkl(pole.hkl),
-                            fontsize=fs_auto, ha="center", va="bottom", zorder=5)
+                t = ax.text(x, y, _fmt_hkl(rep.hkl),
+                            fontsize=fs_auto, ha="center", va="bottom", zorder=6)
                 label_texts.append(t)
 
         # ── Custom poles (red circles / red crosses) ───────────────────
@@ -177,8 +202,10 @@ class StereogramRenderer:
         legend_handles = [
             Line2D([0], [0], marker="o", color="w", markerfacecolor="black",
                    markersize=5, label="Верхняя полусфера"),
-            Line2D([0], [0], marker="x", color="black", markersize=5,
-                   markeredgewidth=0.9, label="Нижняя полусфера"),
+            Line2D([0], [0], marker="o", color="black", markerfacecolor="none",
+                   markersize=5, markeredgewidth=0.8, label="Нижняя полусфера"),
+            Line2D([0], [0], marker="o", color="black", markerfacecolor="none",
+                   markersize=5, markeredgewidth=0.8, label="Обе полусферы (⊙)"),
         ]
         if custom_poles:
             legend_handles.append(
