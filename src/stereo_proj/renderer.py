@@ -114,6 +114,16 @@ class StereogramRenderer:
             zorder=10,
         )
 
+        # ── Scale marker/font sizes with radius ────────────────────────
+        _s = float(np.sqrt(100.0 / R))
+        _s = max(0.35, min(2.0, _s))
+        ms_auto   = round(3.5 * _s, 2)
+        ms_cross  = round(4.5 * _s, 2)
+        ms_custom = round(5.0 * _s, 2)
+        ms_cx     = round(6.0 * _s, 2)
+        fs_auto   = max(5, round(7 * _s))
+        fs_custom = max(6, round(8 * _s))
+
         # ── Standard poles ─────────────────────────────────────────────
         auto_labels = show_labels and len(poles) <= _LABEL_LIMIT
         label_texts = []
@@ -121,14 +131,16 @@ class StereogramRenderer:
         for pole in poles:
             if pole.marker == "filled":
                 ax.plot(pole.x, pole.y, "o",
-                        color="black", markersize=3.5, markeredgewidth=0.6, zorder=4)
+                        color="black", markersize=ms_auto,
+                        markeredgewidth=0.6 * _s, zorder=4)
             else:
                 ax.plot(pole.x, pole.y, "x",
-                        color="black", markersize=4.5, markeredgewidth=0.9, zorder=4)
+                        color="black", markersize=ms_cross,
+                        markeredgewidth=0.9 * _s, zorder=4)
 
             if auto_labels:
                 t = ax.text(pole.x, pole.y, _fmt_hkl(pole.hkl),
-                            fontsize=7, ha="center", va="bottom", zorder=5)
+                            fontsize=fs_auto, ha="center", va="bottom", zorder=5)
                 label_texts.append(t)
 
         # ── Custom poles (red circles / red crosses) ───────────────────
@@ -136,14 +148,14 @@ class StereogramRenderer:
             for pole in custom_poles:
                 if pole.marker == "filled":
                     ax.plot(pole.x, pole.y, "o",
-                            color="#d62728", markersize=5,
-                            markeredgewidth=0.7, zorder=6)
+                            color="#d62728", markersize=ms_custom,
+                            markeredgewidth=0.7 * _s, zorder=6)
                 else:
                     ax.plot(pole.x, pole.y, "x",
-                            color="#d62728", markersize=6,
-                            markeredgewidth=1.2, zorder=6)
+                            color="#d62728", markersize=ms_cx,
+                            markeredgewidth=1.2 * _s, zorder=6)
                 t = ax.text(pole.x, pole.y, _fmt_hkl(pole.hkl),
-                            fontsize=8, fontweight="bold", color="#d62728",
+                            fontsize=fs_custom, fontweight="bold", color="#d62728",
                             ha="center", va="bottom", zorder=7)
                 label_texts.append(t)
 
