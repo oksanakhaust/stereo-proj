@@ -10,3 +10,4 @@ venv/
 *.png
 *.pdf
 !examples/
+!misis_logo.png
