@@ -10,7 +10,6 @@ import numpy as np
 
 from .projection import ProjectedPole, StereographicProjection
 
-_LABEL_LIMIT = 80
 
 _SIGNATURE = (
     "Кафедра физического материаловедения\n"
@@ -125,7 +124,7 @@ class StereogramRenderer:
         fs_custom = max(6, round(8 * _s))
 
         # ── Standard poles ─────────────────────────────────────────────
-        auto_labels = show_labels and len(poles) <= _LABEL_LIMIT
+        auto_labels = show_labels
         label_texts = []
 
         for pole in poles:
