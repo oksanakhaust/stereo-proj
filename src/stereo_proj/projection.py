@@ -46,15 +46,17 @@ class StereographicProjection:
         self.radius = float(radius)
         self.P = P / norm
 
-        # Reference vector not parallel to P
-        ref = np.array([1.0, 0.0, 0.0]) if abs(self.P[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+        # Convention: [001] projected onto the equatorial plane defines North (top).
+        # This matches standard crystallographic atlas orientation.
+        # Fall back to [010] when P is nearly parallel to [001].
+        ref = np.array([0.0, 0.0, 1.0]) if abs(self.P[2]) < 0.9 else np.array([0.0, 1.0, 0.0])
 
-        # e1: projection of ref onto the plane perpendicular to P
+        # e2: North direction (top of projection) — projection of ref onto equatorial plane
         ref_perp = ref - float(np.dot(ref, self.P)) * self.P
-        self.e1: np.ndarray = ref_perp / float(np.linalg.norm(ref_perp))
+        self.e2: np.ndarray = ref_perp / float(np.linalg.norm(ref_perp))
 
-        # e2: completes {e1, e2, P} as a right-handed frame
-        self.e2: np.ndarray = np.cross(self.P, self.e1)
+        # e1: East direction (right of projection); {e1, e2, P} is right-handed
+        self.e1: np.ndarray = np.cross(self.e2, self.P)
 
     # ------------------------------------------------------------------
     def project(
