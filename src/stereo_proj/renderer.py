@@ -281,8 +281,8 @@ class StereogramRenderer:
                 pass
 
         lines = _SIGNATURE.split("\n")
-        line_h = margin * 0.075
-        top_y = -margin * 1.30
+        line_h = margin * 0.048
+        top_y = -margin * 1.355  # align text top with logo top (-margin*1.46 + logo_h≈0.11)
         for i, line in enumerate(lines):
             ax.text(
                 sig_x, top_y - i * line_h,
