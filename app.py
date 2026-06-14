@@ -48,7 +48,7 @@ with st.sidebar:
     st.subheader("Сингония")
     crystal_choice = st.selectbox(
         "Кристаллическая система",
-        options=["Кубическая", "Тетрагональная", "Гексагональная"],
+        options=["Кубическая", "Тетрагональная"],
         index=0,
     )
     c_over_a = 1.0
@@ -63,17 +63,7 @@ with st.sidebar:
             help="Отношение параметров решётки c/a.",
             key="ca_tet",
         )
-    elif crystal_choice == "Гексагональная":
-        c_over_a = st.number_input(
-            "Параметр c/a",
-            min_value=0.1,
-            max_value=10.0,
-            value=1.633,
-            step=0.05,
-            format="%.3f",
-            help="Отношение параметров решётки c/a. Идеальная ГПУ: √(8/3) ≈ 1.633.",
-            key="ca_hex",
-        )
+
 
     st.divider()
 
@@ -190,9 +180,6 @@ if build_btn:
                     if crystal_choice == "Тетрагональная":
                         system = TetragonalSystem(c_over_a=float(c_over_a))
                         system_label = f"тетрагональной (c/a = {c_over_a:.3f})"
-                    elif crystal_choice == "Гексагональная":
-                        system = HexagonalSystem(c_over_a=float(c_over_a))
-                        system_label = f"гексагональной (c/a = {c_over_a:.3f})"
                     else:
                         system = CubicSystem()
                         system_label = "кубической"
