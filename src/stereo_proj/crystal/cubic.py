@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from .base import CrystalSystem, MAX_SUM_SQ, MAX_POINTS, MAX_INDEX
 
 
@@ -51,6 +52,11 @@ class CubicSystem(CrystalSystem):
             )
 
         return result
+
+    def pole_vector(self, hkl: tuple[int, int, int]) -> np.ndarray:
+        h, k, l = hkl
+        v = np.array([h, k, l], dtype=float)
+        return v / float(np.linalg.norm(v))
 
     def angle_between(
         self,

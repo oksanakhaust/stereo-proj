@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 import streamlit as st
 
 from stereo_proj.crystal.cubic import CubicSystem
+from stereo_proj.crystal.tetragonal import TetragonalSystem
 from stereo_proj.projection import StereographicProjection
 from stereo_proj.renderer import StereogramRenderer
 
@@ -40,6 +41,27 @@ st.caption(
 # ──────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("Параметры")
+
+    # --- Сингония ---
+    st.subheader("Сингония")
+    crystal_choice = st.selectbox(
+        "Кристаллическая система",
+        options=["Кубическая", "Тетрагональная"],
+        index=0,
+    )
+    c_over_a = 1.0
+    if crystal_choice == "Тетрагональная":
+        c_over_a = st.number_input(
+            "Параметр c/a",
+            min_value=0.1,
+            max_value=10.0,
+            value=1.5,
+            step=0.05,
+            format="%.3f",
+            help="Отношение параметров решётки c/a. Для кубической c/a = 1.",
+        )
+
+    st.divider()
 
     # --- Центр проекции ---
     st.subheader("Центр проекции [HKL]")
@@ -151,15 +173,23 @@ if build_btn:
                     proj = StereographicProjection(center, radius=float(radius))
                     hemi = _HEMI_MAP[hemisphere_label]
 
+                    if crystal_choice == "Тетрагональная":
+                        system = TetragonalSystem(c_over_a=float(c_over_a))
+                        system_label = f"тетрагональной (c/a = {c_over_a:.3f})"
+                    else:
+                        system = CubicSystem()
+                        system_label = "кубической"
+
                     if only_custom:
                         poles = []
                     else:
-                        system = CubicSystem()
                         hkl_list = system.generate_hkl(max_sum_sq=max_sum_sq)
-                        poles = proj.project_all(hkl_list, hemisphere=hemi)
+                        poles = proj.project_all(hkl_list, hemisphere=hemi,
+                                                 crystal_system=system)
 
                     custom_poles = (
-                        proj.project_custom(custom_hkl_list, hemisphere=hemi)
+                        proj.project_custom(custom_hkl_list, hemisphere=hemi,
+                                            crystal_system=system)
                         if custom_hkl_list else []
                     )
 
@@ -170,7 +200,7 @@ if build_btn:
                         show_labels=show_labels,
                         grid_step=grid_step,
                         custom_poles=custom_poles or None,
-                        crystal_system="кубической",
+                        crystal_system=system_label,
                     )
                     st.session_state["renderer"] = renderer
                     st.session_state["n_poles"] = len(poles)

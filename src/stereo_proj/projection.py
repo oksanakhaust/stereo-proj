@@ -63,6 +63,7 @@ class StereographicProjection:
         self,
         hkl: tuple[int, int, int],
         hemisphere: str = "both",
+        crystal_system=None,
     ) -> ProjectedPole | None:
         """Project a single pole onto the stereonet.
 
@@ -75,12 +76,15 @@ class StereographicProjection:
 
         Returns None if the pole is filtered by the hemisphere setting.
         """
-        h, k, l = hkl
-        Q = np.array([h, k, l], dtype=float)
-        q_norm = float(np.linalg.norm(Q))
-        if q_norm < 1e-10:
-            return None
-        Q = Q / q_norm
+        if crystal_system is not None:
+            Q = crystal_system.pole_vector(hkl)
+        else:
+            h, k, l = hkl
+            Q = np.array([h, k, l], dtype=float)
+            q_norm = float(np.linalg.norm(Q))
+            if q_norm < 1e-10:
+                return None
+            Q = Q / q_norm
 
         cos_rho = float(np.clip(np.dot(self.P, Q), -1.0, 1.0))
         rho = float(np.arccos(cos_rho))
@@ -126,11 +130,12 @@ class StereographicProjection:
         self,
         hkl_list: list[tuple[int, int, int]],
         hemisphere: str = "both",
+        crystal_system=None,
     ) -> list[ProjectedPole]:
         """Project a list of poles, omitting filtered/degenerate ones."""
         result: list[ProjectedPole] = []
         for hkl in hkl_list:
-            pole = self.project(hkl, hemisphere=hemisphere)
+            pole = self.project(hkl, hemisphere=hemisphere, crystal_system=crystal_system)
             if pole is not None:
                 result.append(pole)
         return result
@@ -139,11 +144,12 @@ class StereographicProjection:
         self,
         hkl_list: list[tuple[int, int, int]],
         hemisphere: str = "both",
+        crystal_system=None,
     ) -> list[ProjectedPole]:
         """Project user-supplied poles; marks each with custom=True."""
         result: list[ProjectedPole] = []
         for hkl in hkl_list:
-            pole = self.project(hkl, hemisphere=hemisphere)
+            pole = self.project(hkl, hemisphere=hemisphere, crystal_system=crystal_system)
             if pole is not None:
                 pole.custom = True
                 result.append(pole)
