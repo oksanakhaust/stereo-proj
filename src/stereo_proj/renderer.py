@@ -46,6 +46,27 @@ def _fmt_hkl_bracket(hkl: tuple[int, int, int]) -> str:
     return f"$[{inner}]$"
 
 
+def _fmt_hkil(hkl: tuple[int, int, int]) -> str:
+    """4-index Miller-Bravais notation for hexagonal plane (hkil), i = -(h+k)."""
+    h, k, l = hkl
+    i = -(h + k)
+    inner = _fmt_index(h) + _fmt_index(k) + _fmt_index(i) + _fmt_index(l)
+    return f"$({inner})$"
+
+
+def _fmt_uvtw(uvw: tuple[int, int, int]) -> str:
+    """4-index Miller-Bravais direction [uvtw] from 3-index [UVW] for hexagonal."""
+    import math
+    U, V, W = uvw
+    # [UVW] → [u,v,t,w]: u=(2U-V)/3, v=(2V-U)/3, t=-(U+V)/3, w=W (×3 for integers)
+    u3, v3, t3, w3 = 2 * U - V, 2 * V - U, -(U + V), 3 * W
+    g = math.gcd(math.gcd(math.gcd(abs(u3), abs(v3)), abs(t3)), abs(w3))
+    if g:
+        u3, v3, t3, w3 = u3 // g, v3 // g, t3 // g, w3 // g
+    inner = _fmt_index(u3) + _fmt_index(v3) + _fmt_index(t3) + _fmt_index(w3)
+    return f"$[{inner}]$"
+
+
 class StereogramRenderer:
     """Renders a stereographic projection using matplotlib and exports to file/bytes."""
 
@@ -64,9 +85,13 @@ class StereogramRenderer:
         title: str | None = None,
         custom_poles: list[ProjectedPole] | None = None,
         crystal_system: str = "кубической",
+        use_miller_bravais: bool = False,
     ) -> None:
         if self.fig is not None:
             plt.close(self.fig)
+
+        _lbl_plane = _fmt_hkil if use_miller_bravais else _fmt_hkl
+        _lbl_dir   = _fmt_uvtw if use_miller_bravais else _fmt_hkl_bracket
 
         R = self.projection.radius
 
@@ -103,7 +128,7 @@ class StereogramRenderer:
 
         # Centre label (always visible, bold)
         ax.annotate(
-            _fmt_hkl(self.projection.center_hkl),
+            _lbl_dir(self.projection.center_hkl),
             (0, 0),
             xytext=(0, -8),
             textcoords="offset points",
@@ -170,7 +195,7 @@ class StereogramRenderer:
 
             if auto_labels:
                 # One label per group (upper pole only — avoids doubled labels)
-                t = ax.text(x, y, _fmt_hkl(rep.hkl),
+                t = ax.text(x, y, _lbl_plane(rep.hkl),
                             fontsize=fs_auto, ha="center", va="bottom", zorder=6)
                 label_texts.append(t)
 
@@ -185,7 +210,7 @@ class StereogramRenderer:
                     ax.plot(pole.x, pole.y, "x",
                             color="#d62728", markersize=ms_cx,
                             markeredgewidth=1.2 * _s, zorder=6)
-                t = ax.text(pole.x, pole.y, _fmt_hkl(pole.hkl),
+                t = ax.text(pole.x, pole.y, _lbl_plane(pole.hkl),
                             fontsize=fs_custom, fontweight="bold", color="#d62728",
                             ha="center", va="bottom", zorder=7)
                 label_texts.append(t)
@@ -225,7 +250,7 @@ class StereogramRenderer:
         if title is None:
             title = (
                 f"Стереографическая проекция "
-                f"{_fmt_hkl_bracket(self.projection.center_hkl)} "
+                f"{_lbl_dir(self.projection.center_hkl)} "
                 f"для {crystal_system} сингонии"
             )
         ax.set_title(title, fontsize=12, pad=10)

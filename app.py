@@ -218,6 +218,7 @@ if build_btn:
                         grid_step=grid_step,
                         custom_poles=custom_poles or None,
                         crystal_system=system_label,
+                        use_miller_bravais=(crystal_choice == "Гексагональная"),
                     )
                     st.session_state["renderer"] = renderer
                     st.session_state["n_poles"] = len(poles)
