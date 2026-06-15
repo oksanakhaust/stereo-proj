@@ -49,7 +49,7 @@ class StereographicProjection:
         # Convention: [001] projected onto the equatorial plane defines North (top).
         # This matches standard crystallographic atlas orientation.
         # Fall back to [010] when P is nearly parallel to [001].
-        ref = np.array([0.0, 0.0, 1.0]) if abs(self.P[2]) < 0.9 else np.array([0.0, 1.0, 0.0])
+        ref = np.array([0.0, 0.0, 1.0]) if abs(self.P[2]) < 0.9 else np.array([-1.0, 0.0, 0.0])
 
         # e2: North direction (top of projection) — projection of ref onto equatorial plane
         ref_perp = ref - float(np.dot(ref, self.P)) * self.P
@@ -88,6 +88,9 @@ class StereographicProjection:
 
         cos_rho = float(np.clip(np.dot(self.P, Q), -1.0, 1.0))
         rho = float(np.arccos(cos_rho))
+
+        if rho < 1e-4:  # pole is the center itself — suppress duplicate of center annotation
+            return None
 
         # Azimuthal angle φ in the projection plane
         Q_perp = Q - cos_rho * self.P

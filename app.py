@@ -1,4 +1,4 @@
-﻿"""Streamlit web interface for the stereographic projection generator."""
+"""Streamlit web interface for the stereographic projection generator."""
 
 import os
 import sys
@@ -52,7 +52,7 @@ with st.sidebar:
     st.subheader("Сингония")
     crystal_choice = st.selectbox(
         "Кристаллическая система",
-        options=["Кубическая", "Тетрагональная"],
+        options=["Кубическая", "Тетрагональная", "Гексагональная"],
         index=0,
     )
     c_over_a = 1.0
@@ -67,7 +67,17 @@ with st.sidebar:
             help="Отношение параметров решётки c/a.",
             key="ca_tet",
         )
-
+    elif crystal_choice == "Гексагональная":
+        c_over_a = st.number_input(
+            "Параметр c/a",
+            min_value=0.1,
+            max_value=10.0,
+            value=1.633,
+            step=0.05,
+            format="%.3f",
+            help="Отношение параметров решётки c/a (идеальная ГПУ ≈ 1.633).",
+            key="ca_hex",
+        )
 
     st.divider()
 
@@ -105,15 +115,7 @@ with st.sidebar:
     st.subheader("Вид")
     radius = st.slider("Радиус сетки", min_value=50, max_value=600, value=100, step=10)
 
-    hemisphere_label = st.selectbox(
-        "Полусфера",
-        options=["Верхняя", "Нижняя", "Обе"],
-        index=0,
-        help="Верхняя — закрашенные кружки; нижняя — открытые кружки; обе — открытый кружок с точкой внутри.",
-    )
-    _HEMI_MAP = {"Верхняя": "upper", "Нижняя": "lower", "Обе": "both"}
-
-    show_grid = st.checkbox("Сетка Вульфа", value=True)
+    show_grid = st.checkbox("Сетка", value=True)
     grid_step = 10
     if show_grid:
         grid_step = st.select_slider(
@@ -121,6 +123,25 @@ with st.sidebar:
         )
 
     show_labels = st.checkbox("Подписи (hkl)", value=True)
+    show_brackets = st.checkbox(
+        "Скобки в подписях", value=True,
+        help="Снять галочку — индексы без скобок: 100 вместо (100)"
+    )
+
+    hemisphere_label = st.selectbox(
+        "Полусфера",
+        options=["Верхняя", "Обе"],
+        index=0,
+        help="Верхняя — только заполненные кружки; Обе — верхняя (заполненные) + нижняя (открытые).",
+    )
+    _HEMI_MAP = {"Верхняя": "upper", "Обе": "both"}
+
+    marker_mode = st.radio(
+        "Размер полюса",
+        options=["auto", "fixed"],
+        format_func=lambda x: "По индексам (авто)" if x == "auto" else "Постоянный",
+        horizontal=True,
+    )
 
     st.divider()
 
@@ -184,6 +205,9 @@ if build_btn:
                     if crystal_choice == "Тетрагональная":
                         system = TetragonalSystem(c_over_a=float(c_over_a))
                         system_label = f"тетрагональной (c/a = {c_over_a:.3f})"
+                    elif crystal_choice == "Гексагональная":
+                        system = HexagonalSystem(c_over_a=float(c_over_a))
+                        system_label = f"гексагональной (c/a = {c_over_a:.3f})"
                     else:
                         system = CubicSystem()
                         system_label = "кубической"
@@ -210,6 +234,8 @@ if build_btn:
                         custom_poles=custom_poles or None,
                         crystal_system=system_label,
                         use_miller_bravais=(crystal_choice == "Гексагональная"),
+                        show_brackets=show_brackets,
+                        marker_mode=marker_mode,
                     )
                     st.session_state["renderer"] = renderer
                     st.session_state["n_poles"] = len(poles)
@@ -268,10 +294,24 @@ elif "renderer" in st.session_state:
             mime="application/pdf",
             use_container_width=True,
         )
+        st.download_button(
+            "SVG",
+            data=renderer.get_bytes("svg"),
+            file_name=f"stereo_{center_str}.svg",
+            mime="image/svg+xml",
+            use_container_width=True,
+        )
+        st.download_button(
+            "EPS",
+            data=renderer.get_bytes("eps"),
+            file_name=f"stereo_{center_str}.eps",
+            mime="application/postscript",
+            use_container_width=True,
+        )
 
         st.caption(
-            "JPEG / PNG — растровые изображения 300 dpi.  \n"
-            "PDF — векторный формат, масштабируется без потерь."
+            "JPEG / PNG — растровые 300 dpi.  \n"
+            "PDF / SVG / EPS — векторные форматы."
         )
 
 else:

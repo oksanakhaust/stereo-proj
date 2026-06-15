@@ -28,9 +28,9 @@ def _find_logo() -> str | None:
 
 
 def _fmt_index(n: int) -> str:
-    """Miller index as mathtext fragment: negative gets \\bar{}."""
+    """Miller index as mathtext fragment: negative gets \\overline{}."""
     if n < 0:
-        return r"\bar{" + str(-n) + "}"
+        return r"\overline{" + str(-n) + "}"
     return str(n)
 
 
@@ -67,6 +67,30 @@ def _fmt_uvtw(uvw: tuple[int, int, int]) -> str:
     return f"$[{inner}]$"
 
 
+def _fmt_hkl_bare(hkl: tuple[int, int, int]) -> str:
+    h, k, l = hkl
+    inner = _fmt_index(h) + _fmt_index(k) + _fmt_index(l)
+    return f"${inner}$"
+
+
+def _fmt_hkil_bare(hkl: tuple[int, int, int]) -> str:
+    h, k, l = hkl
+    i = -(h + k)
+    inner = _fmt_index(h) + _fmt_index(k) + _fmt_index(i) + _fmt_index(l)
+    return f"${inner}$"
+
+
+def _fmt_uvtw_bare(uvw: tuple[int, int, int]) -> str:
+    import math
+    U, V, W = uvw
+    u3, v3, t3, w3 = 2 * U - V, 2 * V - U, -(U + V), 3 * W
+    g = math.gcd(math.gcd(math.gcd(abs(u3), abs(v3)), abs(t3)), abs(w3))
+    if g:
+        u3, v3, t3, w3 = u3 // g, v3 // g, t3 // g, w3 // g
+    inner = _fmt_index(u3) + _fmt_index(v3) + _fmt_index(t3) + _fmt_index(w3)
+    return f"${inner}$"
+
+
 class StereogramRenderer:
     """Renders a stereographic projection using matplotlib and exports to file/bytes."""
 
@@ -86,12 +110,18 @@ class StereogramRenderer:
         custom_poles: list[ProjectedPole] | None = None,
         crystal_system: str = "кубической",
         use_miller_bravais: bool = False,
+        show_brackets: bool = True,
+        marker_mode: str = "auto",
     ) -> None:
         if self.fig is not None:
             plt.close(self.fig)
 
-        _lbl_plane = _fmt_hkil if use_miller_bravais else _fmt_hkl
-        _lbl_dir   = _fmt_uvtw if use_miller_bravais else _fmt_hkl_bracket
+        if show_brackets:
+            _lbl_plane = _fmt_hkil if use_miller_bravais else _fmt_hkl
+            _lbl_dir   = _fmt_uvtw if use_miller_bravais else _fmt_hkl_bracket
+        else:
+            _lbl_plane = _fmt_hkil_bare if use_miller_bravais else _fmt_hkl_bare
+            _lbl_dir   = _fmt_uvtw_bare if use_miller_bravais else _fmt_hkl_bare
 
         R = self.projection.radius
 
@@ -174,10 +204,13 @@ class StereogramRenderer:
             rep = next((p for p in group if p.marker == "filled"), group[0])
             x, y = rep.x, rep.y
 
-            # Marker size scales with importance: lower h²+k²+l² → bigger dot
+            # Marker size: fixed or scaled inversely with h²+k²+l²
             h, k, l = rep.hkl
             sum_sq = h * h + k * k + l * l
-            ms_g = ms_auto * max(0.4, 1.0 / (max(sum_sq, 1) ** 0.28))
+            if marker_mode == "fixed":
+                ms_g = ms_auto
+            else:
+                ms_g = ms_auto * max(0.4, 1.0 / (max(sum_sq, 1) ** 0.28))
 
             if has_filled and has_open:
                 # Both hemispheres: open circle + dot inside (⊙)
