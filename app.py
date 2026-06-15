@@ -26,8 +26,12 @@ st.set_page_config(
 )
 
 st.markdown(
-    "<style>#MainMenu{visibility:hidden;}header{visibility:hidden;}"
-    ".stDeployButton{display:none;}</style>",
+    "<style>"
+    "#MainMenu{visibility:hidden;}"
+    "[data-testid='stToolbar']{display:none;}"
+    "[data-testid='stDecoration']{display:none;}"
+    ".stDeployButton{display:none;}"
+    "</style>",
     unsafe_allow_html=True,
 )
 
