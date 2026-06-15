@@ -65,3 +65,24 @@ class TetragonalSystem(CrystalSystem):
         n2 = self.pole_vector(hkl2)
         cos_angle = float(np.clip(np.dot(n1, n2), -1.0, 1.0))
         return math.acos(cos_angle)
+
+    def multiplicity(self, hkl: tuple[int, int, int]) -> int:
+        """Number of equivalent planes {hkl} in tetragonal 4/mmm (up to 16)."""
+        h, k, l = hkl
+        # 4-fold rotations + mirrors on (h,k), mirror on l
+        hk_ops: set[tuple[int, int]] = {
+            (h, k), (-k, h), (-h, -k), (k, -h),
+            (h, -k), (k, h), (-h, k), (-k, -h),
+        }
+        equiv: set[tuple[int, int, int]] = set()
+        for rh, rk in hk_ops:
+            equiv.add((rh, rk, l))
+            if l != 0:
+                equiv.add((rh, rk, -l))
+        return len(equiv)
+
+    def d_relative(self, hkl: tuple[int, int, int]) -> float:
+        """Relative d-spacing for tetragonal (a=1, c=c/a)."""
+        h, k, l = hkl
+        g = self.c_over_a
+        return 1.0 / math.sqrt(h * h + k * k + (l / g) ** 2)

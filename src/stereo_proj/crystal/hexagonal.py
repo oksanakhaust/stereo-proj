@@ -72,3 +72,24 @@ class HexagonalSystem(CrystalSystem):
         n1 = self.pole_vector(hkl1)
         n2 = self.pole_vector(hkl2)
         return math.acos(float(np.clip(np.dot(n1, n2), -1.0, 1.0)))
+
+    def multiplicity(self, hkl: tuple[int, int, int]) -> int:
+        """Number of equivalent planes {hkl} in hexagonal 6/mmm (up to 24)."""
+        h, k, l = hkl
+        # 6-fold rotations + 6 mirror-equivalent (h,k) pairs
+        hk_ops: set[tuple[int, int]] = {
+            (h, k), (-k, h + k), (-h - k, h), (-h, -k), (k, -h - k), (h + k, -h),
+            (k, h), (h + k, -k), (-h, h + k), (-k, -h), (-h - k, k), (h, -h - k),
+        }
+        equiv: set[tuple[int, int, int]] = set()
+        for rh, rk in hk_ops:
+            equiv.add((rh, rk, l))
+            if l != 0:
+                equiv.add((rh, rk, -l))
+        return len(equiv)
+
+    def d_relative(self, hkl: tuple[int, int, int]) -> float:
+        """Relative d-spacing for hexagonal."""
+        h, k, l = hkl
+        g = self.c_over_a
+        return 1.0 / math.sqrt(h * h + (h + 2 * k) ** 2 / 3.0 + (l / g) ** 2)

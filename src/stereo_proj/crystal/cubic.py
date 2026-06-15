@@ -73,3 +73,20 @@ class CubicSystem(CrystalSystem):
             raise ValueError("Zero-length Miller index vector")
         cos_angle = max(-1.0, min(1.0, dot / (mag1 * mag2)))
         return math.acos(cos_angle)
+
+    def multiplicity(self, hkl: tuple[int, int, int]) -> int:
+        """Number of equivalent planes {hkl} in cubic m-3m (up to 48)."""
+        h, k, l = hkl
+        equiv: set[tuple[int, int, int]] = set()
+        for sh in ([h, -h] if h != 0 else [0]):
+            for sk in ([k, -k] if k != 0 else [0]):
+                for sl in ([l, -l] if l != 0 else [0]):
+                    for p in [(sh, sk, sl), (sh, sl, sk), (sk, sh, sl),
+                               (sk, sl, sh), (sl, sh, sk), (sl, sk, sh)]:
+                        equiv.add(p)
+        return len(equiv)
+
+    def d_relative(self, hkl: tuple[int, int, int]) -> float:
+        """Relative d-spacing (larger = more widely spaced planes)."""
+        h, k, l = hkl
+        return 1.0 / math.sqrt(h * h + k * k + l * l)

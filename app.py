@@ -135,10 +135,6 @@ with st.sidebar:
         )
 
     show_labels = st.checkbox("Подписи (hkl)", value=True)
-    show_brackets = st.checkbox(
-        "Скобки в подписях", value=True,
-        help="Снять галочку — индексы без скобок: 100 вместо (100)"
-    )
 
     hemisphere_label = st.selectbox(
         "Полусфера",
@@ -148,10 +144,17 @@ with st.sidebar:
     )
     _HEMI_MAP = {"Верхняя": "upper", "Обе": "both"}
 
+    _MARKER_OPTS = ["auto", "fixed", "d_hkl", "1/P"]
+    _MARKER_LABELS = {
+        "auto":  "По индексам (авто)",
+        "fixed": "Постоянный",
+        "d_hkl": "∝ d(hkl)",
+        "1/P":   "∝ 1/P(hkl)",
+    }
     marker_mode = st.radio(
         "Размер полюса",
-        options=["auto", "fixed"],
-        format_func=lambda x: "По индексам (авто)" if x == "auto" else "Постоянный",
+        options=_MARKER_OPTS,
+        format_func=lambda x: _MARKER_LABELS[x],
         horizontal=True,
     )
 
@@ -216,10 +219,10 @@ if build_btn:
 
                     if crystal_choice == "Тетрагональная":
                         system = TetragonalSystem(c_over_a=float(c_over_a))
-                        system_label = f"тетрагональной (c/a = {c_over_a:.3f})"
+                        system_label = f"тетрагональной (c/a = {c_over_a:.3f})"
                     elif crystal_choice == "Гексагональная":
                         system = HexagonalSystem(c_over_a=float(c_over_a))
-                        system_label = f"гексагональной (c/a = {c_over_a:.3f})"
+                        system_label = f"гексагональной (c/a = {c_over_a:.3f})"
                     else:
                         system = CubicSystem()
                         system_label = "кубической"
@@ -246,8 +249,8 @@ if build_btn:
                         custom_poles=custom_poles or None,
                         crystal_system=system_label,
                         use_miller_bravais=(crystal_choice == "Гексагональная"),
-                        show_brackets=show_brackets,
                         marker_mode=marker_mode,
+                        cs_obj=system,
                     )
                     st.session_state["renderer"] = renderer
                     st.session_state["n_poles"] = len(poles)
@@ -322,7 +325,7 @@ elif "renderer" in st.session_state:
         )
 
         st.caption(
-            "JPEG / PNG — растровые 300 dpi.  \n"
+            "JPEG / PNG — растровые 300 dpi.  \n"
             "PDF / SVG / EPS — векторные форматы."
         )
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import math
 import os
 
 import matplotlib
@@ -16,9 +17,10 @@ _SIGNATURE = (
     "Хаустович Оксана Алексеевна  БМТМ-24-4-1"
 )
 
+_RIM_THRESH = 0.85  # poles beyond this fraction of R get labels outside the circle
+
 
 def _find_logo() -> str | None:
-    """Find misis_logo.png using glob (works with Cyrillic paths on Windows)."""
     import glob
     for pattern in ["misis_logo.png", "*/misis_logo.png"]:
         matches = glob.glob(pattern)
@@ -28,11 +30,12 @@ def _find_logo() -> str | None:
 
 
 def _fmt_index(n: int) -> str:
-    """Miller index as mathtext fragment: negative gets \\overline{}."""
     if n < 0:
         return r"\overline{" + str(-n) + "}"
     return str(n)
 
+
+# ── formatters with brackets (used in title) ──────────────────────────────────
 
 def _fmt_hkl(hkl: tuple[int, int, int]) -> str:
     h, k, l = hkl
@@ -47,7 +50,6 @@ def _fmt_hkl_bracket(hkl: tuple[int, int, int]) -> str:
 
 
 def _fmt_hkil(hkl: tuple[int, int, int]) -> str:
-    """4-index Miller-Bravais notation for hexagonal plane (hkil), i = -(h+k)."""
     h, k, l = hkl
     i = -(h + k)
     inner = _fmt_index(h) + _fmt_index(k) + _fmt_index(i) + _fmt_index(l)
@@ -55,10 +57,7 @@ def _fmt_hkil(hkl: tuple[int, int, int]) -> str:
 
 
 def _fmt_uvtw(uvw: tuple[int, int, int]) -> str:
-    """4-index Miller-Bravais direction [uvtw] from 3-index [UVW] for hexagonal."""
-    import math
     U, V, W = uvw
-    # [UVW] → [u,v,t,w]: u=(2U-V)/3, v=(2V-U)/3, t=-(U+V)/3, w=W (×3 for integers)
     u3, v3, t3, w3 = 2 * U - V, 2 * V - U, -(U + V), 3 * W
     g = math.gcd(math.gcd(math.gcd(abs(u3), abs(v3)), abs(t3)), abs(w3))
     if g:
@@ -66,6 +65,8 @@ def _fmt_uvtw(uvw: tuple[int, int, int]) -> str:
     inner = _fmt_index(u3) + _fmt_index(v3) + _fmt_index(t3) + _fmt_index(w3)
     return f"$[{inner}]$"
 
+
+# ── bare formatters (no brackets, used for all pole labels) ───────────────────
 
 def _fmt_hkl_bare(hkl: tuple[int, int, int]) -> str:
     h, k, l = hkl
@@ -81,7 +82,6 @@ def _fmt_hkil_bare(hkl: tuple[int, int, int]) -> str:
 
 
 def _fmt_uvtw_bare(uvw: tuple[int, int, int]) -> str:
-    import math
     U, V, W = uvw
     u3, v3, t3, w3 = 2 * U - V, 2 * V - U, -(U + V), 3 * W
     g = math.gcd(math.gcd(math.gcd(abs(u3), abs(v3)), abs(t3)), abs(w3))
@@ -89,6 +89,20 @@ def _fmt_uvtw_bare(uvw: tuple[int, int, int]) -> str:
         u3, v3, t3, w3 = u3 // g, v3 // g, t3 // g, w3 // g
     inner = _fmt_index(u3) + _fmt_index(v3) + _fmt_index(t3) + _fmt_index(w3)
     return f"${inner}$"
+
+
+def _rim_text_align(phi: float) -> tuple[str, str]:
+    """Return (ha, va) so that text placed outside the circle at angle phi
+    reads outward from the circle boundary."""
+    a = abs(phi)
+    if a < math.pi / 3:
+        return "left", "center"
+    elif a > 2 * math.pi / 3:
+        return "right", "center"
+    elif phi > 0:
+        return "center", "bottom"
+    else:
+        return "center", "top"
 
 
 class StereogramRenderer:
@@ -110,18 +124,23 @@ class StereogramRenderer:
         custom_poles: list[ProjectedPole] | None = None,
         crystal_system: str = "кубической",
         use_miller_bravais: bool = False,
-        show_brackets: bool = True,
         marker_mode: str = "auto",
+        cs_obj: object = None,
     ) -> None:
         if self.fig is not None:
             plt.close(self.fig)
 
-        if show_brackets:
-            _lbl_plane = _fmt_hkil if use_miller_bravais else _fmt_hkl
-            _lbl_dir   = _fmt_uvtw if use_miller_bravais else _fmt_hkl_bracket
+        # Pole labels — always bare (no brackets)
+        if use_miller_bravais:
+            _lbl_plane = _fmt_hkil_bare
+            _lbl_dir   = _fmt_uvtw_bare
+            _lbl_plane_t = _fmt_hkil       # with brackets for title
+            _lbl_dir_t   = _fmt_uvtw
         else:
-            _lbl_plane = _fmt_hkil_bare if use_miller_bravais else _fmt_hkl_bare
-            _lbl_dir   = _fmt_uvtw_bare if use_miller_bravais else _fmt_hkl_bare
+            _lbl_plane = _fmt_hkl_bare
+            _lbl_dir   = _fmt_hkl_bare
+            _lbl_plane_t = _fmt_hkl
+            _lbl_dir_t   = _fmt_hkl_bracket
 
         R = self.projection.radius
 
@@ -156,7 +175,7 @@ class StereogramRenderer:
         # Crosshair at centre
         ax.plot(0, 0, "+", color="black", markersize=6, markeredgewidth=0.8, zorder=3)
 
-        # Centre label (always visible, bold)
+        # Centre label
         ax.annotate(
             _lbl_dir(self.projection.center_hkl),
             (0, 0),
@@ -173,7 +192,6 @@ class StereogramRenderer:
         _s = float(np.sqrt(100.0 / R))
         _s = max(0.35, min(2.0, _s))
         ms_auto   = round(3.5 * _s, 2)
-        ms_cross  = round(4.5 * _s, 2)
         ms_custom = round(5.0 * _s, 2)
         ms_cx     = round(6.0 * _s, 2)
         fs_auto   = max(5, round(7 * _s))
@@ -193,27 +211,41 @@ class StereogramRenderer:
             if not placed:
                 groups.append([pole])
 
+        # ── Pre-compute size factors for d_hkl / 1/P modes ───────────
+        _size_raw: dict[tuple, float] = {}
+        _max_f = 1.0
+        if marker_mode in ("d_hkl", "1/P") and cs_obj is not None:
+            for group in groups:
+                rep = next((p for p in group if p.marker == "filled"), group[0])
+                try:
+                    f = (cs_obj.d_relative(rep.hkl) if marker_mode == "d_hkl"
+                         else 1.0 / cs_obj.multiplicity(rep.hkl))
+                except Exception:
+                    f = 1.0
+                _size_raw[rep.hkl] = f
+            if _size_raw:
+                _max_f = max(_size_raw.values())
+
         # ── Standard poles ─────────────────────────────────────────────
-        auto_labels = show_labels
         label_texts = []
 
         for group in groups:
             has_filled = any(p.marker == "filled" for p in group)
             has_open   = any(p.marker == "open"   for p in group)
-            # Position and label from upper-hemisphere pole when present
             rep = next((p for p in group if p.marker == "filled"), group[0])
             x, y = rep.x, rep.y
 
-            # Marker size: fixed or scaled inversely with h²+k²+l²
+            # Marker size
             h, k, l = rep.hkl
             sum_sq = h * h + k * k + l * l
             if marker_mode == "fixed":
                 ms_g = ms_auto
-            else:
+            elif marker_mode in ("d_hkl", "1/P") and rep.hkl in _size_raw:
+                ms_g = ms_auto * max(0.3, _size_raw[rep.hkl] / _max_f)
+            else:  # "auto"
                 ms_g = ms_auto * max(0.4, 1.0 / (max(sum_sq, 1) ** 0.28))
 
             if has_filled and has_open:
-                # Both hemispheres: open circle + dot inside (⊙)
                 ax.plot(x, y, "o", color="black", markersize=ms_g,
                         markerfacecolor="none", markeredgewidth=0.9 * _s, zorder=4)
                 ax.plot(x, y, "o", color="black",
@@ -222,14 +254,22 @@ class StereogramRenderer:
             elif has_filled:
                 ax.plot(x, y, "o", color="black", markersize=ms_g,
                         markeredgewidth=0.6 * _s, zorder=4)
-            else:  # open only
+            else:
                 ax.plot(x, y, "o", color="black", markersize=ms_g,
                         markerfacecolor="none", markeredgewidth=0.8 * _s, zorder=4)
 
-            if auto_labels:
-                # One label per group (upper pole only — avoids doubled labels)
-                t = ax.text(x, y, _lbl_plane(rep.hkl),
-                            fontsize=fs_auto, ha="center", va="bottom", zorder=6)
+            if show_labels:
+                r_pole = math.sqrt(x * x + y * y)
+                if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
+                    phi = math.atan2(y, x)
+                    lx = R * 1.08 * math.cos(phi)
+                    ly = R * 1.08 * math.sin(phi)
+                    ha, va = _rim_text_align(phi)
+                    t = ax.text(lx, ly, _lbl_plane(rep.hkl),
+                                fontsize=fs_auto, ha=ha, va=va, zorder=6)
+                else:
+                    t = ax.text(x, y, _lbl_plane(rep.hkl),
+                                fontsize=fs_auto, ha="center", va="bottom", zorder=6)
                 label_texts.append(t)
 
         # ── Custom poles (red circles / red crosses) ───────────────────
@@ -243,9 +283,19 @@ class StereogramRenderer:
                     ax.plot(pole.x, pole.y, "x",
                             color="#d62728", markersize=ms_cx,
                             markeredgewidth=1.2 * _s, zorder=6)
-                t = ax.text(pole.x, pole.y, _lbl_plane(pole.hkl),
-                            fontsize=fs_custom, fontweight="bold", color="#d62728",
-                            ha="center", va="bottom", zorder=7)
+                r_pole = math.sqrt(pole.x * pole.x + pole.y * pole.y)
+                if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
+                    phi = math.atan2(pole.y, pole.x)
+                    lx = R * 1.08 * math.cos(phi)
+                    ly = R * 1.08 * math.sin(phi)
+                    ha, va = _rim_text_align(phi)
+                    t = ax.text(lx, ly, _lbl_plane(pole.hkl),
+                                fontsize=fs_custom, fontweight="bold", color="#d62728",
+                                ha=ha, va=va, zorder=7)
+                else:
+                    t = ax.text(pole.x, pole.y, _lbl_plane(pole.hkl),
+                                fontsize=fs_custom, fontweight="bold", color="#d62728",
+                                ha="center", va="bottom", zorder=7)
                 label_texts.append(t)
 
         # ── Repel overlapping labels ───────────────────────────────────
@@ -283,15 +333,15 @@ class StereogramRenderer:
         if title is None:
             title = (
                 f"Стереографическая проекция "
-                f"{_lbl_dir(self.projection.center_hkl)} "
+                f"{_lbl_dir_t(self.projection.center_hkl)} "
                 f"для {crystal_system} сингонии"
             )
         ax.set_title(title, fontsize=12, pad=10)
 
-        # ── Axis limits ────────────────────────────────────────────────
+        # ── Axis limits (wider to accommodate outside-rim labels) ───────
         margin = R * 1.18
-        ax.set_xlim(-margin, margin)
-        ax.set_ylim(-margin * 1.52, margin)
+        ax.set_xlim(-R * 1.22, R * 1.22)
+        ax.set_ylim(-margin * 1.52, R * 1.22)
 
         # ── Watermark: logo + signature (bottom-left, always) ──────────
         sig_x = -margin * 0.98
@@ -315,7 +365,7 @@ class StereogramRenderer:
 
         lines = _SIGNATURE.split("\n")
         line_h = margin * 0.048
-        top_y = -margin * 1.355  # align text top with logo top (-margin*1.46 + logo_h≈0.11)
+        top_y = -margin * 1.355
         for i, line in enumerate(lines):
             ax.text(
                 sig_x, top_y - i * line_h,
