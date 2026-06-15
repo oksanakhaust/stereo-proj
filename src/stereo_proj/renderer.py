@@ -258,6 +258,11 @@ class StereogramRenderer:
                 _max_f = max(_size_raw.values())
 
         # ── Standard poles ─────────────────────────────────────────────
+        # Auto-disable labels when too many poles — unreadable anyway and slow
+        _too_many = len(groups) > 300
+        if _too_many:
+            show_labels = False
+
         label_texts = []
 
         for group in groups:
@@ -329,8 +334,8 @@ class StereogramRenderer:
                                 ha="center", va="bottom", zorder=7)
                 label_texts.append(t)
 
-        # ── Repel overlapping labels ───────────────────────────────────
-        if label_texts:
+        # ── Repel overlapping labels (skip for large pole counts — O(n²)) ──
+        if label_texts and len(label_texts) <= 150:
             try:
                 from adjustText import adjust_text
                 adjust_text(
