@@ -31,6 +31,18 @@ st.markdown(
     "[data-testid='stToolbar']{display:none;}"
     "[data-testid='stDecoration']{display:none;}"
     ".stDeployButton{display:none;}"
+    "[data-testid='collapsedControl']{"
+    "  display:flex !important;"
+    "  visibility:visible !important;"
+    "  opacity:1 !important;"
+    "  background-color:#1565C0 !important;"
+    "  border-radius:0 12px 12px 0 !important;"
+    "  min-width:28px !important;"
+    "  min-height:72px !important;"
+    "  align-items:center !important;"
+    "  justify-content:center !important;"
+    "}"
+    "[data-testid='collapsedControl'] svg{fill:white !important;}"
     "</style>",
     unsafe_allow_html=True,
 )
