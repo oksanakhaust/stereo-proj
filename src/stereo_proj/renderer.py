@@ -197,7 +197,7 @@ class StereogramRenderer:
                                 ax.plot(res[0], res[1], color=color, linewidth=lw, zorder=1)
 
             _draw_net(2,  "#cccccc", 0.4)   # 2°  fine grid — very light
-            _draw_net(10, "#666666", 1.2)   # 10° bold grid — clearly darker/thicker
+            _draw_net(10, "#666666", 0.4)   # 10° grid — same lw, darker color
 
         # ── Outer boundary circle (thin dark-gray so rim poles show) ────
         outer = plt.Circle((0, 0), R, fill=False, color="#555555", linewidth=0.7, zorder=2)
