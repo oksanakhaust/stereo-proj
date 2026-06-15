@@ -124,16 +124,7 @@ with st.sidebar:
             key="ca_tet",
         )
     elif crystal_choice == "Гексагональная":
-        c_over_a = st.number_input(
-            "Параметр c/a",
-            min_value=0.1,
-            max_value=10.0,
-            value=1.633,
-            step=0.05,
-            format="%.3f",
-            help="Отношение параметров решётки c/a (идеальная ГПУ ≈ 1.633).",
-            key="ca_hex",
-        )
+        c_over_a = 1.6330
 
     st.divider()
 
@@ -254,7 +245,7 @@ if build_btn:
                         system_label = f"тетрагональной (c/a = {c_over_a:.3f})"
                     elif crystal_choice == "Гексагональная":
                         system = HexagonalSystem(c_over_a=float(c_over_a))
-                        system_label = f"гексагональной (c/a = {c_over_a:.3f})"
+                        system_label = "гексагональной (ГПУ)"
                     else:
                         system = CubicSystem()
                         system_label = "кубической"
