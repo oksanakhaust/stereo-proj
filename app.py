@@ -290,6 +290,14 @@ if build_btn:
                     st.session_state["n_poles"] = len(poles)
                     st.session_state["n_custom"] = len(custom_poles)
                     st.session_state["center"] = center
+                    # Pre-compute export bytes at build time to avoid
+                    # stale-object AttributeErrors on page re-renders
+                    st.session_state["export_a4"]  = renderer.get_bytes_a4_pdf()
+                    st.session_state["export_jpeg"] = renderer.get_bytes("jpeg")
+                    st.session_state["export_png"]  = renderer.get_bytes("png")
+                    st.session_state["export_pdf"]  = renderer.get_bytes("pdf")
+                    st.session_state["export_svg"]  = renderer.get_bytes("svg")
+                    st.session_state["export_eps"]  = renderer.get_bytes("eps")
                     st.session_state.pop("error", None)
                 except ValueError as exc:
                     st.session_state["error"] = str(exc)
@@ -324,7 +332,7 @@ elif "renderer" in st.session_state:
 
         st.download_button(
             "Печать А4 (PDF)",
-            data=renderer.get_bytes_a4_pdf(),
+            data=st.session_state["export_a4"],
             file_name=f"stereo_{center_str}_A4.pdf",
             mime="application/pdf",
             use_container_width=True,
@@ -336,35 +344,35 @@ elif "renderer" in st.session_state:
 
         st.download_button(
             "JPEG",
-            data=renderer.get_bytes("jpeg"),
+            data=st.session_state["export_jpeg"],
             file_name=f"stereo_{center_str}.jpg",
             mime="image/jpeg",
             use_container_width=True,
         )
         st.download_button(
             "PNG",
-            data=renderer.get_bytes("png"),
+            data=st.session_state["export_png"],
             file_name=f"stereo_{center_str}.png",
             mime="image/png",
             use_container_width=True,
         )
         st.download_button(
             "PDF",
-            data=renderer.get_bytes("pdf"),
+            data=st.session_state["export_pdf"],
             file_name=f"stereo_{center_str}.pdf",
             mime="application/pdf",
             use_container_width=True,
         )
         st.download_button(
             "SVG",
-            data=renderer.get_bytes("svg"),
+            data=st.session_state["export_svg"],
             file_name=f"stereo_{center_str}.svg",
             mime="image/svg+xml",
             use_container_width=True,
         )
         st.download_button(
             "EPS",
-            data=renderer.get_bytes("eps"),
+            data=st.session_state["export_eps"],
             file_name=f"stereo_{center_str}.eps",
             mime="application/postscript",
             use_container_width=True,
