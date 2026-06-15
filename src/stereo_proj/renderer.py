@@ -17,7 +17,7 @@ _SIGNATURE = (
     "Хаустович Оксана Алексеевна  БМТМ-24-4-1"
 )
 
-_RIM_THRESH = 0.85  # poles beyond this fraction of R get labels outside the circle
+_RIM_THRESH = 0.97  # poles beyond this fraction of R get labels outside the circle
 
 
 def _find_logo() -> str | None:
