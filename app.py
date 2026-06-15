@@ -177,14 +177,6 @@ with st.sidebar:
     show_grid = st.checkbox("Сетка Вульфа", value=True)
     show_labels = st.checkbox("Подписи (hkl)", value=True)
 
-    hemisphere_label = st.selectbox(
-        "Полусфера",
-        options=["Верхняя", "Обе"],
-        index=0,
-        help="Верхняя — только заполненные кружки; Обе — верхняя (заполненные) + нижняя (открытые).",
-    )
-    _HEMI_MAP = {"Верхняя": "upper", "Обе": "both"}
-
     _MARKER_OPTS = ["fixed", "d_hkl", "1/P"]
     _MARKER_LABELS = {
         "fixed": "Постоянный",
@@ -255,7 +247,7 @@ if build_btn:
             with st.spinner("Вычисляю проекцию…"):
                 try:
                     proj = StereographicProjection(center, radius=float(radius))
-                    hemi = _HEMI_MAP[hemisphere_label]
+                    hemi = "upper"
 
                     if crystal_choice == "Тетрагональная":
                         system = TetragonalSystem(c_over_a=float(c_over_a))
