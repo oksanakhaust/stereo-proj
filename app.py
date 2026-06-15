@@ -323,6 +323,18 @@ elif "renderer" in st.session_state:
         )
 
         st.download_button(
+            "Печать А4 (PDF)",
+            data=renderer.get_bytes_a4_pdf(),
+            file_name=f"stereo_{center_str}_A4.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+            type="primary",
+            help="Векторный PDF формата А4, диаметр сетки ≈ 200 мм — готов к печати.",
+        )
+
+        st.divider()
+
+        st.download_button(
             "JPEG",
             data=renderer.get_bytes("jpeg"),
             file_name=f"stereo_{center_str}.jpg",
@@ -359,8 +371,9 @@ elif "renderer" in st.session_state:
         )
 
         st.caption(
+            "**Печать А4** — векторный PDF, диаметр ≈ 200 мм.  \n"
             "JPEG / PNG — растровые 300 dpi.  \n"
-            "PDF / SVG / EPS — векторные форматы."
+            "PDF / SVG / EPS — векторные, текущий масштаб."
         )
 
 else:

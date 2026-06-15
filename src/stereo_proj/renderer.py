@@ -444,6 +444,20 @@ class StereogramRenderer:
         buf.seek(0)
         return buf
 
+    def get_bytes_a4_pdf(self) -> io.BytesIO:
+        """A4-ready PDF: circle diameter ≈ 200 mm, fits on A4 for printing."""
+        if self.fig is None:
+            raise RuntimeError("Call draw() before get_bytes_a4_pdf()")
+        # A4 width = 210 mm = 8.268 inches; use a square that fills A4 width
+        # so the circle renders at ≈ 200 mm diameter on paper.
+        orig_size = self.fig.get_size_inches()
+        self.fig.set_size_inches(8.268, 8.268)
+        buf = io.BytesIO()
+        self.fig.savefig(buf, format="pdf", bbox_inches="tight", facecolor="white")
+        self.fig.set_size_inches(*orig_size)
+        buf.seek(0)
+        return buf
+
     def export(self, path: str, fmt: str = "png") -> None:
         if self.fig is None:
             raise RuntimeError("Call draw() before export()")
