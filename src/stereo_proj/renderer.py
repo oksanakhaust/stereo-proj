@@ -144,7 +144,7 @@ class StereogramRenderer:
 
         R = self.projection.radius
 
-        plt.rcParams["font.family"] = "Arial"
+        plt.rcParams["font.family"] = "DejaVu Sans"
 
         fig_size = float(np.clip(8.0 * np.sqrt(R / 100.0), 8.0, 16.0))
         fig, ax = plt.subplots(figsize=(fig_size, fig_size), dpi=100)
@@ -371,7 +371,7 @@ class StereogramRenderer:
                 sig_x, top_y - i * line_h,
                 line,
                 fontsize=7, va="top", ha="left", color="#555555",
-                fontfamily="Arial",
+                fontfamily="DejaVu Sans",
             )
 
         self.fig = fig
