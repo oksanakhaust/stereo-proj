@@ -153,51 +153,58 @@ class StereogramRenderer:
         ax.set_aspect("equal")
         ax.axis("off")
 
-        # ── Wulff net (equatorial orientation, 2° step) ─────────────────
+        # ── Wulff net (equatorial, 2° fine + 10° bold) ─────────────────
         if show_grid:
-            _gc = "#cccccc"
-            _lw = 0.5
 
-            def _arcs_inside(cx, cy, r, n=300):
-                t = np.linspace(0, 2 * np.pi, n, endpoint=False)
-                xs = cx + r * np.cos(t)
-                ys = cy + r * np.sin(t)
-                inside = xs ** 2 + ys ** 2 <= R ** 2 + 1e-6
-                segs, cur_x, cur_y = [], [], []
-                for xi, yi, ins in zip(xs, ys, inside):
-                    if ins:
-                        cur_x.append(xi); cur_y.append(yi)
-                    else:
-                        if cur_x:
-                            segs.append((cur_x[:], cur_y[:])); cur_x, cur_y = [], []
-                if cur_x:
-                    segs.append((cur_x, cur_y))
-                return segs
+            def _arc_wulff(cx, cy, rc):
+                """Arc of circle (cx,cy,rc) clipped to disk of radius R.
+                Uses analytic intersection so there are no sampling gaps."""
+                d2 = cx * cx + cy * cy
+                d = math.sqrt(d2)
+                eps = 1e-9
+                if d + rc < R - eps:
+                    # Entirely inside — full circle
+                    t = np.linspace(0, 2 * math.pi, 400, endpoint=False)
+                    return cx + rc * np.cos(t), cy + rc * np.sin(t)
+                if d > rc + R + eps or rc > d + R + eps or d + R < rc - eps:
+                    return None
+                if d < eps:
+                    return None
+                phi = math.atan2(cy, cx)
+                cosv = (R * R - d2 - rc * rc) / (2 * rc * d)
+                cosv = max(-1.0, min(1.0, cosv))
+                dt = math.acos(cosv)
+                t1, t2 = phi - dt, phi + dt
+                xm = cx + rc * math.cos((t1 + t2) / 2)
+                ym = cy + rc * math.sin((t1 + t2) / 2)
+                if xm * xm + ym * ym <= R * R:
+                    t_arr = np.linspace(t1, t2, 400)
+                else:
+                    t_arr = np.linspace(t2, t1 + 2 * math.pi, 400)
+                return cx + rc * np.cos(t_arr), cy + rc * np.sin(t_arr)
 
-            # Cardinal lines
-            ax.plot([0, 0], [-R, R], color=_gc, linewidth=_lw, zorder=1)
-            ax.plot([-R, R], [0, 0], color=_gc, linewidth=_lw, zorder=1)
+            def _draw_net(step, color, lw):
+                ax.plot([0, 0], [-R, R], color=color, linewidth=lw, zorder=1)
+                ax.plot([-R, R], [0, 0], color=color, linewidth=lw, zorder=1)
+                for a_deg in range(step, 90, step):
+                    a = math.radians(a_deg)
+                    m_r, m_c = R / math.sin(a), R / math.tan(a)
+                    p_c, p_r = R / math.cos(a), R * math.tan(a)
+                    for s in (-1, 1):
+                        for (cx, cy, rc) in [(s * m_c, 0, m_r), (0, s * p_c, p_r)]:
+                            res = _arc_wulff(cx, cy, rc)
+                            if res is not None:
+                                ax.plot(res[0], res[1], color=color, linewidth=lw, zorder=1)
 
-            for _a_deg in range(2, 90, 2):
-                _a = np.radians(_a_deg)
-                # Meridians — great circle arcs through (0, ±R)
-                # centre on x-axis at ±R·cot(a), radius R/sin(a)
-                _m_r = R / np.sin(_a)
-                _m_c = R / np.tan(_a)
-                for _s in (-1, 1):
-                    for _xs, _ys in _arcs_inside(_s * _m_c, 0, _m_r):
-                        ax.plot(_xs, _ys, color=_gc, linewidth=_lw, zorder=1)
-                # Parallels — small-circle arcs orthogonal to boundary
-                # centre on y-axis at ±R/cos(a), radius R·tan(a)
-                _p_c = R / np.cos(_a)
-                _p_r = R * np.tan(_a)
-                for _s in (-1, 1):
-                    for _xs, _ys in _arcs_inside(0, _s * _p_c, _p_r):
-                        ax.plot(_xs, _ys, color=_gc, linewidth=_lw, zorder=1)
+            _draw_net(2,  "#d8d8d8", 0.35)  # 2°  fine grid — very light
+            _draw_net(10, "#999999", 0.9)   # 10° bold grid — medium gray
 
-        # ── Outer boundary circle ──────────────────────────────────────
-        outer = plt.Circle((0, 0), R, fill=False, color="black", linewidth=1.5, zorder=2)
+        # ── Outer boundary circle (thin dark-gray so rim poles show) ────
+        outer = plt.Circle((0, 0), R, fill=False, color="#777777", linewidth=0.8, zorder=2)
         ax.add_patch(outer)
+
+        # Centre dot
+        ax.plot(0, 0, ".", color="black", markersize=3, markeredgewidth=0, zorder=3)
 
         # Centre label
         ax.annotate(
