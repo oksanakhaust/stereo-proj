@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 MAX_SUM_SQ = 100
-MAX_POINTS = 1000
+MAX_POINTS = 10000
 MAX_INDEX = 10
 
 
