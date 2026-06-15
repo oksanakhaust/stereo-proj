@@ -126,6 +126,7 @@ class StereogramRenderer:
         use_miller_bravais: bool = False,
         marker_mode: str = "auto",
         cs_obj: object = None,
+        phi_rotation: float = 0.0,
     ) -> None:
         if self.fig is not None:
             plt.close(self.fig)
@@ -143,6 +144,14 @@ class StereogramRenderer:
             _lbl_dir_t   = _fmt_hkl_bracket
 
         R = self.projection.radius
+
+        _cos_r = math.cos(math.radians(phi_rotation))
+        _sin_r = math.sin(math.radians(phi_rotation))
+
+        def _rot(px, py):
+            return px * _cos_r - py * _sin_r, px * _sin_r + py * _cos_r
+
+        custom_hkl_set = {p.hkl for p in (custom_poles or [])}
 
         plt.rcParams["font.family"] = "DejaVu Sans"
 
@@ -269,7 +278,10 @@ class StereogramRenderer:
             has_filled = any(p.marker == "filled" for p in group)
             has_open   = any(p.marker == "open"   for p in group)
             rep = next((p for p in group if p.marker == "filled"), group[0])
-            x, y = rep.x, rep.y
+            x, y = _rot(rep.x, rep.y)
+
+            _highlighted = any(p.hkl in custom_hkl_set for p in group)
+            _pc = "#d62728" if _highlighted else "black"
 
             # Marker size
             h, k, l = rep.hkl
@@ -282,16 +294,16 @@ class StereogramRenderer:
                 ms_g = ms_auto
 
             if has_filled and has_open:
-                ax.plot(x, y, "o", color="black", markersize=ms_g,
+                ax.plot(x, y, "o", color=_pc, markersize=ms_g,
                         markerfacecolor="none", markeredgewidth=0.9 * _s, zorder=4)
-                ax.plot(x, y, "o", color="black",
+                ax.plot(x, y, "o", color=_pc,
                         markersize=max(1.0, ms_g * 0.35),
                         markeredgewidth=0, zorder=5)
             elif has_filled:
-                ax.plot(x, y, "o", color="black", markersize=ms_g,
+                ax.plot(x, y, "o", color=_pc, markersize=ms_g,
                         markeredgewidth=0.6 * _s, zorder=4)
             else:
-                ax.plot(x, y, "o", color="black", markersize=ms_g,
+                ax.plot(x, y, "o", color=_pc, markersize=ms_g,
                         markerfacecolor="none", markeredgewidth=0.8 * _s, zorder=4)
 
             if show_labels:
@@ -302,26 +314,34 @@ class StereogramRenderer:
                     ly = R * 1.04 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
                     t = ax.text(lx, ly, _lbl_plane(rep.hkl),
-                                fontsize=fs_auto, ha=ha, va=va, zorder=6)
+                                fontsize=fs_auto, ha=ha, va=va, zorder=6,
+                                color=_pc)
                 else:
                     t = ax.text(x, y, _lbl_plane(rep.hkl),
-                                fontsize=fs_auto, ha="center", va="bottom", zorder=6)
+                                fontsize=fs_auto, ha="center", va="bottom", zorder=6,
+                                color=_pc)
                 label_texts.append(t)
 
         # ── Custom poles (red circles / red crosses) ───────────────────
+        # Poles that duplicate an existing standard pole are already highlighted
+        # red in the standard group — skip re-drawing them here.
         if custom_poles:
+            _existing_hkl = {p.hkl for g in groups for p in g}
             for pole in custom_poles:
+                if pole.hkl in _existing_hkl:
+                    continue
+                px, py = _rot(pole.x, pole.y)
                 if pole.marker == "filled":
-                    ax.plot(pole.x, pole.y, "o",
+                    ax.plot(px, py, "o",
                             color="#d62728", markersize=ms_custom,
                             markeredgewidth=0.7 * _s, zorder=6)
                 else:
-                    ax.plot(pole.x, pole.y, "x",
+                    ax.plot(px, py, "x",
                             color="#d62728", markersize=ms_cx,
                             markeredgewidth=1.2 * _s, zorder=6)
-                r_pole = math.sqrt(pole.x * pole.x + pole.y * pole.y)
+                r_pole = math.sqrt(px * px + py * py)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
-                    phi = math.atan2(pole.y, pole.x)
+                    phi = math.atan2(py, px)
                     lx = R * 1.04 * math.cos(phi)
                     ly = R * 1.04 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
@@ -329,7 +349,7 @@ class StereogramRenderer:
                                 fontsize=fs_custom, fontweight="bold", color="#d62728",
                                 ha=ha, va=va, zorder=7)
                 else:
-                    t = ax.text(pole.x, pole.y, _lbl_plane(pole.hkl),
+                    t = ax.text(px, py, _lbl_plane(pole.hkl),
                                 fontsize=fs_custom, fontweight="bold", color="#d62728",
                                 ha="center", va="bottom", zorder=7)
                 label_texts.append(t)
@@ -352,10 +372,6 @@ class StereogramRenderer:
         legend_handles = [
             Line2D([0], [0], marker="o", color="w", markerfacecolor="black",
                    markersize=5, label="Верхняя полусфера"),
-            Line2D([0], [0], marker="o", color="black", markerfacecolor="none",
-                   markersize=5, markeredgewidth=0.8, label="Нижняя полусфера"),
-            Line2D([0], [0], marker="o", color="black", markerfacecolor="none",
-                   markersize=5, markeredgewidth=0.8, label="Обе полусферы (⊙)"),
         ]
         if custom_poles:
             legend_handles.append(

@@ -272,6 +272,17 @@ if build_btn:
                         if custom_hkl_list else []
                     )
 
+                    # For hexagonal: rotate so (10-10) = (1,0,0) ends up at the bottom
+                    phi_rotation = 0.0
+                    if crystal_choice == "Гексагональная":
+                        import math as _m
+                        _p1010 = proj.project((1, 0, 0), hemisphere="both",
+                                              crystal_system=system)
+                        if _p1010 is not None:
+                            _cur = _m.atan2(_p1010.y, _p1010.x)
+                            _tgt = -_m.pi / 2  # bottom center
+                            phi_rotation = _m.degrees(_tgt - _cur)
+
                     renderer = StereogramRenderer(proj)
                     renderer.draw(
                         poles,
@@ -282,6 +293,7 @@ if build_btn:
                         use_miller_bravais=(crystal_choice == "Гексагональная"),
                         marker_mode=marker_mode,
                         cs_obj=system,
+                        phi_rotation=phi_rotation,
                     )
                     st.session_state["renderer"] = renderer
                     st.session_state["n_poles"] = len(poles)
