@@ -310,6 +310,12 @@ if st.session_state.get("error"):
     st.error(st.session_state["error"])
 
 elif "renderer" in st.session_state:
+    # If export keys are missing the projection was built with an older version —
+    # ask the user to rebuild so all bytes get pre-computed fresh.
+    if "export_a4" not in st.session_state:
+        st.warning("Нажмите **«Построить проекцию»** ещё раз — идёт обновление приложения.")
+        st.stop()
+
     renderer: StereogramRenderer = st.session_state["renderer"]
     n_poles: int = st.session_state["n_poles"]
     center: tuple = st.session_state["center"]
