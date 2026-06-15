@@ -180,15 +180,19 @@ class StereogramRenderer:
 
             for _a_deg in range(2, 90, 2):
                 _a = np.radians(_a_deg)
-                _arc_r = R / np.sin(_a)
-                _cot = np.cos(_a) / np.sin(_a)
-                # Meridians — circles through (0, ±R), centres on x-axis
+                # Meridians — great circle arcs through (0, ±R)
+                # centre on x-axis at ±R·cot(a), radius R/sin(a)
+                _m_r = R / np.sin(_a)
+                _m_c = R / np.tan(_a)
                 for _s in (-1, 1):
-                    for _xs, _ys in _arcs_inside(_s * R * _cot, 0, _arc_r):
+                    for _xs, _ys in _arcs_inside(_s * _m_c, 0, _m_r):
                         ax.plot(_xs, _ys, color=_gc, linewidth=_lw, zorder=1)
-                # Parallels — circles through (±R, 0), centres on y-axis
+                # Parallels — small-circle arcs orthogonal to boundary
+                # centre on y-axis at ±R/cos(a), radius R·tan(a)
+                _p_c = R / np.cos(_a)
+                _p_r = R * np.tan(_a)
                 for _s in (-1, 1):
-                    for _xs, _ys in _arcs_inside(0, _s * R * _cot, _arc_r):
+                    for _xs, _ys in _arcs_inside(0, _s * _p_c, _p_r):
                         ax.plot(_xs, _ys, color=_gc, linewidth=_lw, zorder=1)
 
         # ── Outer boundary circle ──────────────────────────────────────
