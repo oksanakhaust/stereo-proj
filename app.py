@@ -9,6 +9,7 @@ matplotlib.use("Agg")
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "src"))
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from stereo_proj.crystal.cubic import CubicSystem
 from stereo_proj.crystal.tetragonal import TetragonalSystem
@@ -51,6 +52,44 @@ st.markdown(
     "[data-testid='collapsedControl'] svg{fill:white !important;color:white !important;}"
     "</style>",
     unsafe_allow_html=True,
+)
+
+components.html(
+    """
+    <script>
+    (function() {
+        var d = window.parent.document;
+        if (d.getElementById('_sb_toggle')) return;
+        var b = d.createElement('button');
+        b.id = '_sb_toggle';
+        b.title = 'Открыть / закрыть панель';
+        b.innerHTML = '&#9776;';
+        b.style.cssText = 'position:fixed;left:0;top:50vh;transform:translateY(-50%);'
+            + 'z-index:2147483647;background:#1565C0;color:#fff;border:none;'
+            + 'border-radius:0 10px 10px 0;width:32px;height:76px;'
+            + 'font-size:20px;cursor:pointer;padding:0;line-height:1;'
+            + 'box-shadow:2px 0 6px rgba(0,0,0,.3);';
+        b.addEventListener('click', function() {
+            var sel = [
+                '[data-testid="collapsedControl"]',
+                '[data-testid="stSidebarCollapsedControl"]',
+                'button[aria-label*="sidebar"]',
+                'button[aria-label*="Sidebar"]',
+                '[data-testid="stSidebar"] button',
+                'section[data-testid="stSidebar"] button'
+            ];
+            for (var i = 0; i < sel.length; i++) {
+                var el = d.querySelector(sel[i]);
+                if (el) { el.click(); return; }
+            }
+            d.dispatchEvent(new KeyboardEvent('keydown', {key:'.', bubbles:true}));
+        });
+        d.body.appendChild(b);
+    })();
+    </script>
+    """,
+    height=0,
+    scrolling=False,
 )
 
 st.title("Стереографические проекции")
