@@ -35,14 +35,13 @@ st.markdown(
     "[data-testid='collapsedControl']{"
     "  position:fixed !important;"
     "  left:0 !important;"
-    "  top:50vh !important;"
-    "  transform:translateY(-50%) !important;"
+    "  top:16px !important;"
     "  z-index:99999 !important;"
     "  display:flex !important;"
     "  visibility:visible !important;"
     "  opacity:1 !important;"
     "  background-color:#1565C0 !important;"
-    "  border-radius:0 12px 12px 0 !important;"
+    "  border-radius:0 10px 10px 0 !important;"
     "  width:28px !important;"
     "  height:72px !important;"
     "  align-items:center !important;"
@@ -64,9 +63,9 @@ components.html(
         b.id = '_sb_toggle';
         b.title = 'Открыть / закрыть панель';
         b.innerHTML = '&#9776;';
-        b.style.cssText = 'position:fixed;left:0;top:50vh;transform:translateY(-50%);'
+        b.style.cssText = 'position:fixed;left:0;top:16px;'
             + 'z-index:2147483647;background:#1565C0;color:#fff;border:none;'
-            + 'border-radius:0 10px 10px 0;width:32px;height:76px;'
+            + 'border-radius:0 10px 10px 0;width:32px;height:72px;'
             + 'font-size:20px;cursor:pointer;padding:0;line-height:1;'
             + 'box-shadow:2px 0 6px rgba(0,0,0,.3);';
         b.addEventListener('click', function() {
@@ -155,9 +154,12 @@ with st.sidebar:
         help="Скрыть все автоматически сгенерированные полюсы.",
     )
     if not only_custom:
-        max_sum_sq = st.slider(
+        max_sum_sq = st.number_input(
             "Макс. h²+k²+l²",
-            min_value=1, max_value=25, value=9,
+            min_value=1,
+            max_value=100,
+            value=9,
+            step=1,
             help=(
                 "Ограничивает набор плоскостей: все (hkl) с h²+k²+l² ≤ N. "
                 "N=1 → {100}, N=2 → +{110}, N=3 → +{111}, N=5 → +{210}, …"
@@ -172,13 +174,7 @@ with st.sidebar:
     st.subheader("Вид")
     radius = st.slider("Радиус сетки", min_value=50, max_value=600, value=100, step=10)
 
-    show_grid = st.checkbox("Сетка", value=True)
-    grid_step = 10
-    if show_grid:
-        grid_step = st.select_slider(
-            "Шаг сетки (°)", options=[2, 5, 10, 15, 30], value=10
-        )
-
+    show_grid = st.checkbox("Сетка Вульфа", value=True)
     show_labels = st.checkbox("Подписи (hkl)", value=True)
 
     hemisphere_label = st.selectbox(
@@ -189,15 +185,14 @@ with st.sidebar:
     )
     _HEMI_MAP = {"Верхняя": "upper", "Обе": "both"}
 
-    _MARKER_OPTS = ["auto", "fixed", "d_hkl", "1/P"]
+    _MARKER_OPTS = ["fixed", "d_hkl", "1/P"]
     _MARKER_LABELS = {
-        "auto":  "По индексам (авто)",
         "fixed": "Постоянный",
         "d_hkl": "∝ d(hkl)",
         "1/P":   "∝ 1/P(hkl)",
     }
     marker_mode = st.radio(
-        "Размер полюса",
+        "Диаметр полюса",
         options=_MARKER_OPTS,
         format_func=lambda x: _MARKER_LABELS[x],
         horizontal=True,
@@ -275,7 +270,7 @@ if build_btn:
                     if only_custom:
                         poles = []
                     else:
-                        hkl_list = system.generate_hkl(max_sum_sq=max_sum_sq)
+                        hkl_list = system.generate_hkl(max_sum_sq=int(max_sum_sq))
                         poles = proj.project_all(hkl_list, hemisphere=hemi,
                                                  crystal_system=system)
 
@@ -290,7 +285,6 @@ if build_btn:
                         poles,
                         show_grid=show_grid,
                         show_labels=show_labels,
-                        grid_step=grid_step,
                         custom_poles=custom_poles or None,
                         crystal_system=system_label,
                         use_miller_bravais=(crystal_choice == "Гексагональная"),

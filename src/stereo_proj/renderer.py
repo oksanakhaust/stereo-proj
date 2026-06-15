@@ -153,27 +153,47 @@ class StereogramRenderer:
         ax.set_aspect("equal")
         ax.axis("off")
 
-        # ── Wulff net ──────────────────────────────────────────────────
+        # ── Wulff net (equatorial orientation, 2° step) ─────────────────
         if show_grid:
             _gc = "#cccccc"
             _lw = 0.5
-            for rho_deg in range(grid_step, 90, grid_step):
-                rho_rad = np.radians(rho_deg)
-                r = R * np.tan(rho_rad / 2.0)
-                circle = plt.Circle((0, 0), r, fill=False, color=_gc, linewidth=_lw, zorder=1)
-                ax.add_patch(circle)
-            for phi_deg in range(0, 180, grid_step):
-                phi_rad = np.radians(phi_deg)
-                dx, dy = np.cos(phi_rad), np.sin(phi_rad)
-                ax.plot([-R * dx, R * dx], [-R * dy, R * dy],
-                        color=_gc, linewidth=_lw, zorder=1)
+
+            def _arcs_inside(cx, cy, r, n=300):
+                t = np.linspace(0, 2 * np.pi, n, endpoint=False)
+                xs = cx + r * np.cos(t)
+                ys = cy + r * np.sin(t)
+                inside = xs ** 2 + ys ** 2 <= R ** 2 + 1e-6
+                segs, cur_x, cur_y = [], [], []
+                for xi, yi, ins in zip(xs, ys, inside):
+                    if ins:
+                        cur_x.append(xi); cur_y.append(yi)
+                    else:
+                        if cur_x:
+                            segs.append((cur_x[:], cur_y[:])); cur_x, cur_y = [], []
+                if cur_x:
+                    segs.append((cur_x, cur_y))
+                return segs
+
+            # Cardinal lines
+            ax.plot([0, 0], [-R, R], color=_gc, linewidth=_lw, zorder=1)
+            ax.plot([-R, R], [0, 0], color=_gc, linewidth=_lw, zorder=1)
+
+            for _a_deg in range(2, 90, 2):
+                _a = np.radians(_a_deg)
+                _arc_r = R / np.sin(_a)
+                _cot = np.cos(_a) / np.sin(_a)
+                # Meridians — circles through (0, ±R), centres on x-axis
+                for _s in (-1, 1):
+                    for _xs, _ys in _arcs_inside(_s * R * _cot, 0, _arc_r):
+                        ax.plot(_xs, _ys, color=_gc, linewidth=_lw, zorder=1)
+                # Parallels — circles through (±R, 0), centres on y-axis
+                for _s in (-1, 1):
+                    for _xs, _ys in _arcs_inside(0, _s * R * _cot, _arc_r):
+                        ax.plot(_xs, _ys, color=_gc, linewidth=_lw, zorder=1)
 
         # ── Outer boundary circle ──────────────────────────────────────
         outer = plt.Circle((0, 0), R, fill=False, color="black", linewidth=1.5, zorder=2)
         ax.add_patch(outer)
-
-        # Crosshair at centre
-        ax.plot(0, 0, "+", color="black", markersize=6, markeredgewidth=0.8, zorder=3)
 
         # Centre label
         ax.annotate(
@@ -242,8 +262,8 @@ class StereogramRenderer:
                 ms_g = ms_auto
             elif marker_mode in ("d_hkl", "1/P") and rep.hkl in _size_raw:
                 ms_g = ms_auto * max(0.3, _size_raw[rep.hkl] / _max_f)
-            else:  # "auto"
-                ms_g = ms_auto * max(0.4, 1.0 / (max(sum_sq, 1) ** 0.28))
+            else:
+                ms_g = ms_auto
 
             if has_filled and has_open:
                 ax.plot(x, y, "o", color="black", markersize=ms_g,
@@ -262,8 +282,8 @@ class StereogramRenderer:
                 r_pole = math.sqrt(x * x + y * y)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(y, x)
-                    lx = R * 1.08 * math.cos(phi)
-                    ly = R * 1.08 * math.sin(phi)
+                    lx = R * 1.04 * math.cos(phi)
+                    ly = R * 1.04 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
                     t = ax.text(lx, ly, _lbl_plane(rep.hkl),
                                 fontsize=fs_auto, ha=ha, va=va, zorder=6)
@@ -286,8 +306,8 @@ class StereogramRenderer:
                 r_pole = math.sqrt(pole.x * pole.x + pole.y * pole.y)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(pole.y, pole.x)
-                    lx = R * 1.08 * math.cos(phi)
-                    ly = R * 1.08 * math.sin(phi)
+                    lx = R * 1.04 * math.cos(phi)
+                    ly = R * 1.04 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
                     t = ax.text(lx, ly, _lbl_plane(pole.hkl),
                                 fontsize=fs_custom, fontweight="bold", color="#d62728",
