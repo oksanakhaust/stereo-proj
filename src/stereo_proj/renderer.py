@@ -92,17 +92,17 @@ def _fmt_uvtw_bare(uvw: tuple[int, int, int]) -> str:
 
 
 def _rim_text_align(phi: float) -> tuple[str, str]:
-    """Return (ha, va) so that text placed outside the circle at angle phi
-    reads outward from the circle boundary."""
+    """Return (ha, va) for text placed on the circle boundary at angle phi.
+    Left/right extremes are centered on the boundary point to avoid overflow."""
     a = abs(phi)
     if a < math.pi / 3:
-        return "left", "center"
+        return "center", "center"   # right side: centered on boundary
     elif a > 2 * math.pi / 3:
-        return "right", "center"
+        return "center", "center"   # left side: centered on boundary
     elif phi > 0:
-        return "center", "bottom"
+        return "center", "bottom"   # top arc: below the anchor
     else:
-        return "center", "top"
+        return "center", "top"      # bottom arc: above the anchor
 
 
 class StereogramRenderer:
@@ -318,8 +318,8 @@ class StereogramRenderer:
                 r_pole = math.sqrt(x * x + y * y)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(y, x)
-                    lx = R * 1.005 * math.cos(phi)
-                    ly = R * 1.005 * math.sin(phi)
+                    lx = R * 1.01 * math.cos(phi)
+                    ly = R * 1.01 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
                     # Rim labels: fixed position, not passed to adjust_text
                     ax.text(lx, ly, _lbl_plane(rep.hkl),
@@ -351,8 +351,8 @@ class StereogramRenderer:
                 r_pole = math.sqrt(px * px + py * py)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(py, px)
-                    lx = R * 1.005 * math.cos(phi)
-                    ly = R * 1.005 * math.sin(phi)
+                    lx = R * 1.01 * math.cos(phi)
+                    ly = R * 1.01 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
                     ax.text(lx, ly, _lbl_plane(pole.hkl),
                             fontsize=fs_custom, fontweight="bold", color="#d62728",
