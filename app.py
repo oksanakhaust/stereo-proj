@@ -343,7 +343,6 @@ elif "renderer" in st.session_state:
             mime="application/pdf",
             use_container_width=True,
             type="primary",
-            help="Векторный PDF формата А4, диаметр сетки ≈ 200 мм — готов к печати.",
         )
 
         st.divider()

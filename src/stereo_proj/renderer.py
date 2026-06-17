@@ -159,6 +159,9 @@ class StereogramRenderer:
         if _paper == "a4":
             # A4 portrait: 210×297 mm = 8.268×11.693 inches, 300 dpi for print
             fig, ax = plt.subplots(figsize=(8.268, 11.693), dpi=300)
+            # Remove side margins so circle fills full page width → exactly 200 mm diameter
+            # Keep 7% top margin for the title text
+            fig.subplots_adjust(left=0, right=1, bottom=0, top=0.93)
         else:
             fig_size = float(np.clip(8.0 * np.sqrt(R / 100.0), 8.0, 16.0))
             fig, ax = plt.subplots(figsize=(fig_size, fig_size), dpi=100)
@@ -396,10 +399,10 @@ class StereogramRenderer:
         ax.set_title(title, fontsize=12, pad=10)
 
         # ── Axis limits ────────────────────────────────────────────────
-        # A4: tight limits so circle ≈ 194mm diameter on 210mm wide page
+        # A4: xlim=±1.05R → with no side margins, circle = exactly 200mm diameter
         # Screen: wider margins for crowded labels
-        margin = R * (1.02 if _paper == "a4" else 1.18)
-        xlim_f = 1.08 if _paper == "a4" else 1.22
+        margin = R * (0.95 if _paper == "a4" else 1.18)
+        xlim_f = 1.05 if _paper == "a4" else 1.22
         ax.set_xlim(-R * xlim_f, R * xlim_f)
         ax.set_ylim(-margin * 1.52, R * 1.22)
 
