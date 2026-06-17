@@ -280,7 +280,7 @@ class StereogramRenderer:
         if _too_many:
             show_labels = False
 
-        label_texts = []
+        inner_texts = []  # fed to adjust_text (interior poles only)
 
         for group in groups:
             has_filled = any(p.marker == "filled" for p in group)
@@ -318,17 +318,18 @@ class StereogramRenderer:
                 r_pole = math.sqrt(x * x + y * y)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(y, x)
-                    lx = R * 1.01 * math.cos(phi)
-                    ly = R * 1.01 * math.sin(phi)
+                    lx = R * 1.005 * math.cos(phi)
+                    ly = R * 1.005 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
-                    t = ax.text(lx, ly, _lbl_plane(rep.hkl),
-                                fontsize=fs_auto, ha=ha, va=va, zorder=6,
-                                color=_pc)
+                    # Rim labels: fixed position, not passed to adjust_text
+                    ax.text(lx, ly, _lbl_plane(rep.hkl),
+                            fontsize=fs_auto, ha=ha, va=va, zorder=6,
+                            color=_pc)
                 else:
                     t = ax.text(x, y, _lbl_plane(rep.hkl),
                                 fontsize=fs_auto, ha="center", va="bottom", zorder=6,
                                 color=_pc)
-                label_texts.append(t)
+                    inner_texts.append(t)
 
         # ── Custom poles (red circles / red crosses) ───────────────────
         # Poles that duplicate an existing standard pole are already highlighted
@@ -350,28 +351,23 @@ class StereogramRenderer:
                 r_pole = math.sqrt(px * px + py * py)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(py, px)
-                    lx = R * 1.01 * math.cos(phi)
-                    ly = R * 1.01 * math.sin(phi)
+                    lx = R * 1.005 * math.cos(phi)
+                    ly = R * 1.005 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
-                    t = ax.text(lx, ly, _lbl_plane(pole.hkl),
-                                fontsize=fs_custom, fontweight="bold", color="#d62728",
-                                ha=ha, va=va, zorder=7)
+                    ax.text(lx, ly, _lbl_plane(pole.hkl),
+                            fontsize=fs_custom, fontweight="bold", color="#d62728",
+                            ha=ha, va=va, zorder=7)
                 else:
                     t = ax.text(px, py, _lbl_plane(pole.hkl),
                                 fontsize=fs_custom, fontweight="bold", color="#d62728",
                                 ha="center", va="bottom", zorder=7)
-                label_texts.append(t)
+                    inner_texts.append(t)
 
-        # ── Repel overlapping labels (skip for large pole counts — O(n²)) ──
-        if label_texts and len(label_texts) <= 150:
+        # ── Repel overlapping interior labels only (rim labels stay fixed) ──
+        if inner_texts and len(inner_texts) <= 150:
             try:
                 from adjustText import adjust_text
-                adjust_text(
-                    label_texts,
-                    ax=ax,
-                    expand=(1.2, 1.4),
-                    arrowprops=dict(arrowstyle="-", color="#aaaaaa", lw=0.5),
-                )
+                adjust_text(inner_texts, ax=ax, expand=(1.2, 1.4))
             except Exception:
                 pass
 
