@@ -127,6 +127,7 @@ class StereogramRenderer:
         marker_mode: str = "auto",
         cs_obj: object = None,
         phi_rotation: float = 0.0,
+        _paper: str = "screen",
     ) -> None:
         if self.fig is not None:
             plt.close(self.fig)
@@ -155,8 +156,12 @@ class StereogramRenderer:
 
         plt.rcParams["font.family"] = "DejaVu Sans"
 
-        fig_size = float(np.clip(8.0 * np.sqrt(R / 100.0), 8.0, 16.0))
-        fig, ax = plt.subplots(figsize=(fig_size, fig_size), dpi=100)
+        if _paper == "a4":
+            # A4 portrait: 210×297 mm = 8.268×11.693 inches, 300 dpi for print
+            fig, ax = plt.subplots(figsize=(8.268, 11.693), dpi=300)
+        else:
+            fig_size = float(np.clip(8.0 * np.sqrt(R / 100.0), 8.0, 16.0))
+            fig, ax = plt.subplots(figsize=(fig_size, fig_size), dpi=100)
         fig.patch.set_facecolor("white")
         ax.set_facecolor("white")
         ax.set_aspect("equal")
@@ -390,9 +395,12 @@ class StereogramRenderer:
             )
         ax.set_title(title, fontsize=12, pad=10)
 
-        # ── Axis limits (wider to accommodate outside-rim labels) ───────
-        margin = R * 1.18
-        ax.set_xlim(-R * 1.22, R * 1.22)
+        # ── Axis limits ────────────────────────────────────────────────
+        # A4: tight limits so circle ≈ 194mm diameter on 210mm wide page
+        # Screen: wider margins for crowded labels
+        margin = R * (1.02 if _paper == "a4" else 1.18)
+        xlim_f = 1.08 if _paper == "a4" else 1.22
+        ax.set_xlim(-R * xlim_f, R * xlim_f)
         ax.set_ylim(-margin * 1.52, R * 1.22)
 
         # ── Watermark: logo + signature (bottom-left, always) ──────────
@@ -429,6 +437,17 @@ class StereogramRenderer:
         self.fig = fig
         self.ax = ax
 
+        # Store args so get_bytes_a4_pdf() can re-render at A4 size
+        if _paper == "screen":
+            self._draw_state = dict(
+                poles=poles, custom_poles=custom_poles,
+                show_grid=show_grid, show_labels=show_labels,
+                crystal_system=crystal_system,
+                use_miller_bravais=use_miller_bravais,
+                marker_mode=marker_mode, cs_obj=cs_obj,
+                phi_rotation=phi_rotation,
+            )
+
     # ------------------------------------------------------------------
     def get_figure(self) -> plt.Figure:
         if self.fig is None:
@@ -445,17 +464,35 @@ class StereogramRenderer:
         return buf
 
     def get_bytes_a4_pdf(self) -> io.BytesIO:
-        """A4-ready PDF: circle diameter ≈ 200 mm, fits on A4 for printing."""
-        if self.fig is None:
+        """Re-render at true A4 portrait (210×297 mm), circle diameter ≈ 194 mm."""
+        if not hasattr(self, "_draw_state") or self._draw_state is None:
             raise RuntimeError("Call draw() before get_bytes_a4_pdf()")
-        # A4 width = 210 mm = 8.268 inches; use a square that fills A4 width
-        # so the circle renders at ≈ 200 mm diameter on paper.
-        orig_size = self.fig.get_size_inches()
-        self.fig.set_size_inches(8.268, 8.268)
+
+        s = self._draw_state
+        saved_fig, saved_ax = self.fig, self.ax
+        self.fig = None  # prevent draw() from closing the screen figure
+
+        self.draw(
+            s["poles"],
+            show_grid=s["show_grid"],
+            show_labels=s["show_labels"],
+            custom_poles=s["custom_poles"],
+            crystal_system=s["crystal_system"],
+            use_miller_bravais=s["use_miller_bravais"],
+            marker_mode=s["marker_mode"],
+            cs_obj=s["cs_obj"],
+            phi_rotation=s["phi_rotation"],
+            _paper="a4",
+        )
+
         buf = io.BytesIO()
-        self.fig.savefig(buf, format="pdf", bbox_inches="tight", facecolor="white")
-        self.fig.set_size_inches(*orig_size)
+        # Save full A4 page — no bbox_inches="tight" so dimensions stay exact
+        self.fig.savefig(buf, format="pdf", facecolor="white")
         buf.seek(0)
+
+        plt.close(self.fig)
+        self.fig = saved_fig
+        self.ax = saved_ax
         return buf
 
     def export(self, path: str, fmt: str = "png") -> None:
