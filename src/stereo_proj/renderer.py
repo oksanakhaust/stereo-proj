@@ -92,17 +92,16 @@ def _fmt_uvtw_bare(uvw: tuple[int, int, int]) -> str:
 
 
 def _rim_text_align(phi: float) -> tuple[str, str]:
-    """Return (ha, va) for text placed on the circle boundary at angle phi.
-    Left/right extremes are centered on the boundary point to avoid overflow."""
+    """Return (ha, va) for text placed just outside the circle at angle phi."""
     a = abs(phi)
     if a < math.pi / 3:
-        return "center", "center"   # right side: centered on boundary
+        return "left", "center"    # right side: text extends rightward
     elif a > 2 * math.pi / 3:
-        return "center", "center"   # left side: centered on boundary
+        return "right", "center"   # left side: text extends leftward
     elif phi > 0:
-        return "center", "bottom"   # top arc: below the anchor
+        return "center", "bottom"  # top arc: text above anchor
     else:
-        return "center", "top"      # bottom arc: above the anchor
+        return "center", "top"     # bottom arc: text below anchor
 
 
 class StereogramRenderer:
@@ -398,7 +397,7 @@ class StereogramRenderer:
         # A4: xlim=±1.05R → with no side margins, circle = exactly 200mm diameter
         # Screen: wider margins for crowded labels
         margin = R * (0.95 if _paper == "a4" else 1.18)
-        xlim_f = 1.05 if _paper == "a4" else 1.22
+        xlim_f = 1.05 if _paper == "a4" else 1.30
         ax.set_xlim(-R * xlim_f, R * xlim_f)
         ax.set_ylim(-margin * 1.52, R * 1.22)
 
