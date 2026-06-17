@@ -377,19 +377,6 @@ class StereogramRenderer:
             except Exception:
                 pass
 
-        # ── Legend ─────────────────────────────────────────────────────
-        from matplotlib.lines import Line2D
-        legend_handles = [
-            Line2D([0], [0], marker="o", color="w", markerfacecolor="black",
-                   markersize=5, label="Верхняя полусфера"),
-        ]
-        if custom_poles:
-            legend_handles.append(
-                Line2D([0], [0], marker="o", color="w", markerfacecolor="#d62728",
-                       markersize=5, label="Заданные вручную")
-            )
-        ax.legend(handles=legend_handles, loc="lower right",
-                  fontsize=8, framealpha=0.8, handlelength=1)
 
         # ── Title ──────────────────────────────────────────────────────
         if title is None:
