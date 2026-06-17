@@ -318,8 +318,8 @@ class StereogramRenderer:
                 r_pole = math.sqrt(x * x + y * y)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(y, x)
-                    lx = R * 1.04 * math.cos(phi)
-                    ly = R * 1.04 * math.sin(phi)
+                    lx = R * 1.01 * math.cos(phi)
+                    ly = R * 1.01 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
                     t = ax.text(lx, ly, _lbl_plane(rep.hkl),
                                 fontsize=fs_auto, ha=ha, va=va, zorder=6,
@@ -350,8 +350,8 @@ class StereogramRenderer:
                 r_pole = math.sqrt(px * px + py * py)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(py, px)
-                    lx = R * 1.04 * math.cos(phi)
-                    ly = R * 1.04 * math.sin(phi)
+                    lx = R * 1.01 * math.cos(phi)
+                    ly = R * 1.01 * math.sin(phi)
                     ha, va = _rim_text_align(phi)
                     t = ax.text(lx, ly, _lbl_plane(pole.hkl),
                                 fontsize=fs_custom, fontweight="bold", color="#d62728",
