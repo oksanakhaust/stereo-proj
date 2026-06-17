@@ -91,17 +91,24 @@ def _fmt_uvtw_bare(uvw: tuple[int, int, int]) -> str:
     return f"${inner}$"
 
 
-def _rim_text_align(phi: float) -> tuple[str, str]:
-    """Return (ha, va) for text placed just outside the circle at angle phi."""
+def _rim_text_align(phi: float) -> tuple[str, str, float, float]:
+    """Return (ha, va, dx, dy) for a rim label at angle phi.
+
+    dx, dy are extra offsets in units of R applied to the anchor
+    (in addition to the base R*1.01 radial position).
+
+    Left/right extremes (|phi| < 60° or > 120°): label centered
+    below the dot so it never overflows the sides of the figure.
+    Top/bottom arc: label above or below the dot radially.
+    """
     a = abs(phi)
-    if a < math.pi / 3:
-        return "left", "center"    # right side: text extends rightward
-    elif a > 2 * math.pi / 3:
-        return "right", "center"   # left side: text extends leftward
+    if a < math.pi / 3 or a > 2 * math.pi / 3:
+        # Left / right extreme — place text centered directly below the dot
+        return "center", "top", 0.0, -0.04
     elif phi > 0:
-        return "center", "bottom"  # top arc: text above anchor
+        return "center", "bottom", 0.0, 0.0   # upper arc: text above
     else:
-        return "center", "top"     # bottom arc: text below anchor
+        return "center", "top",    0.0, 0.0   # lower arc: text below
 
 
 class StereogramRenderer:
@@ -317,9 +324,9 @@ class StereogramRenderer:
                 r_pole = math.sqrt(x * x + y * y)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(y, x)
-                    lx = R * 1.01 * math.cos(phi)
-                    ly = R * 1.01 * math.sin(phi)
-                    ha, va = _rim_text_align(phi)
+                    ha, va, dx, dy = _rim_text_align(phi)
+                    lx = R * 1.01 * math.cos(phi) + dx * R
+                    ly = R * 1.01 * math.sin(phi) + dy * R
                     # Rim labels: fixed position, not passed to adjust_text
                     ax.text(lx, ly, _lbl_plane(rep.hkl),
                             fontsize=fs_auto, ha=ha, va=va, zorder=6,
@@ -350,9 +357,9 @@ class StereogramRenderer:
                 r_pole = math.sqrt(px * px + py * py)
                 if r_pole > R * _RIM_THRESH and r_pole > 1e-6:
                     phi = math.atan2(py, px)
-                    lx = R * 1.01 * math.cos(phi)
-                    ly = R * 1.01 * math.sin(phi)
-                    ha, va = _rim_text_align(phi)
+                    ha, va, dx, dy = _rim_text_align(phi)
+                    lx = R * 1.01 * math.cos(phi) + dx * R
+                    ly = R * 1.01 * math.sin(phi) + dy * R
                     ax.text(lx, ly, _lbl_plane(pole.hkl),
                             fontsize=fs_custom, fontweight="bold", color="#d62728",
                             ha=ha, va=va, zorder=7)
