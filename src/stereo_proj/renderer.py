@@ -369,8 +369,8 @@ class StereogramRenderer:
                                 ha="center", va="bottom", zorder=7)
                     inner_texts.append(t)
 
-        # ── Repel overlapping interior labels only (rim labels stay fixed) ──
-        if inner_texts and len(inner_texts) <= 150:
+        # ── Repel overlapping interior labels only (screen mode, rim labels stay fixed) ──
+        if inner_texts and len(inner_texts) <= 150 and _paper == "screen":
             try:
                 from adjustText import adjust_text
                 adjust_text(inner_texts, ax=ax, expand=(1.2, 1.4))
@@ -395,36 +395,69 @@ class StereogramRenderer:
         ax.set_xlim(-R * xlim_f, R * xlim_f)
         ax.set_ylim(-margin * 1.52, R * 1.22)
 
-        # ── Watermark: logo + signature (bottom-left, always) ──────────
-        sig_x = -margin * 0.98
+        # ── Watermark: logo + signature ────────────────────────────────
         logo_path = _find_logo()
 
-        if logo_path:
-            try:
-                logo_img = plt.imread(logo_path)
-                h_px, w_px = logo_img.shape[:2]
-                logo_h = margin * 0.11
-                logo_w = logo_h * (w_px / h_px)
-                logo_ax = ax.inset_axes(
-                    [-margin * 0.98, -margin * 1.46, logo_w, logo_h],
-                    transform=ax.transData,
-                )
-                logo_ax.imshow(logo_img)
-                logo_ax.axis("off")
-                sig_x = -margin * 0.98 + logo_w + margin * 0.04
-            except Exception:
-                pass
+        if _paper == "a4":
+            # Use figure-fraction coordinates so logo/sig reliably sit
+            # in the bottom margin, independent of data coordinate scaling.
+            _fl = 0.03   # left edge fraction
+            _fb = 0.015  # bottom edge fraction (~4 mm from page bottom)
+            _fh = 0.045  # logo height fraction (~13 mm)
+            _sig_x_frac = _fl
 
-        lines = _SIGNATURE.split("\n")
-        line_h = margin * 0.048
-        top_y = -margin * 1.355
-        for i, line in enumerate(lines):
-            ax.text(
-                sig_x, top_y - i * line_h,
-                line,
-                fontsize=7, va="top", ha="left", color="#555555",
-                fontfamily="DejaVu Sans",
-            )
+            if logo_path:
+                try:
+                    logo_img = plt.imread(logo_path)
+                    h_px, w_px = logo_img.shape[:2]
+                    _fw = _fh * (w_px / h_px) * (
+                        fig.get_figheight() / fig.get_figwidth()
+                    )
+                    logo_ax2 = fig.add_axes([_fl, _fb, _fw, _fh])
+                    logo_ax2.imshow(logo_img)
+                    logo_ax2.axis("off")
+                    _sig_x_frac = _fl + _fw + 0.01
+                except Exception:
+                    pass
+
+            for i, line in enumerate(_SIGNATURE.split("\n")):
+                fig.text(
+                    _sig_x_frac,
+                    _fb + _fh - i * (_fh * 0.45),
+                    line,
+                    fontsize=7, va="top", ha="left", color="#555555",
+                    fontfamily="DejaVu Sans",
+                )
+        else:
+            # Screen mode: data-coordinate based placement
+            sig_x = -margin * 0.98
+
+            if logo_path:
+                try:
+                    logo_img = plt.imread(logo_path)
+                    h_px, w_px = logo_img.shape[:2]
+                    logo_h = margin * 0.11
+                    logo_w = logo_h * (w_px / h_px)
+                    logo_ax = ax.inset_axes(
+                        [-margin * 0.98, -margin * 1.46, logo_w, logo_h],
+                        transform=ax.transData,
+                    )
+                    logo_ax.imshow(logo_img)
+                    logo_ax.axis("off")
+                    sig_x = -margin * 0.98 + logo_w + margin * 0.04
+                except Exception:
+                    pass
+
+            lines = _SIGNATURE.split("\n")
+            line_h = margin * 0.048
+            top_y = -margin * 1.355
+            for i, line in enumerate(lines):
+                ax.text(
+                    sig_x, top_y - i * line_h,
+                    line,
+                    fontsize=7, va="top", ha="left", color="#555555",
+                    fontfamily="DejaVu Sans",
+                )
 
         self.fig = fig
         self.ax = ax
